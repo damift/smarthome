@@ -40,6 +40,8 @@ cd smarthome
 ```bash
 docker compose build
 docker compose up -d
+docker compose exec backend composer install
+
 ```
 
 ### 3) Laravel .env instellen
