@@ -1,21 +1,10 @@
-import { useEffect, useState } from "react";
+import { Button } from "@/components/ui/button";
+import LoginCard from "@/components/login";
 
-function App() {
-  const [message, setMessage] = useState("");
-
-  useEffect(() => {
-    fetch("http://localhost:8080/api/test")
-      .then((res) => res.json())
-      .then((data) => setMessage(data.message))
-      .catch((err) => console.error(err));
-  }, []);
-
+export default function App() {
   return (
-    <div>
-      <h1>Laravel says:</h1>
-      <p>{message}</p>
+    <div className="p-6">
+      <LoginCard />
     </div>
   );
 }
-
-export default App;
