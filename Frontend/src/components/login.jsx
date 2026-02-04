@@ -12,7 +12,14 @@ import {
 
 export default function LoginCard() {
   return (
+    <>
+    
     <Card className="w-full max-w-sm">
+        <div className="p-4 border-b flex justify-center">
+            <div className="p-4 border-2">
+                Smart Home System  
+            </div>      
+        </div>
       <CardHeader>
         <CardTitle>Inloggen</CardTitle>
         <CardDescription>
@@ -37,13 +44,10 @@ export default function LoginCard() {
           Inloggen
         </Button>
 
-        <button
-          type="button"
-          className="text-sm text-muted-foreground underline-offset-4 hover:underline"
-        >
-          Wachtwoord vergeten?
-        </button>
+          <a className="text-sm text-muted-foreground underline-offset-4 hover:underline" href="#">Wachtwoord vergeten?</a>
+        
       </CardFooter>
     </Card>
+    </>
   );
 }

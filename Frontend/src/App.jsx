@@ -3,8 +3,8 @@ import LoginCard from "@/components/login";
 
 export default function App() {
   return (
-    <div className="p-6">
+    <section className="p-8 flex items-center justify-center min-h-screen w-screen bg-gray-100">
       <LoginCard />
-    </div>
+    </section>
   );
 }
