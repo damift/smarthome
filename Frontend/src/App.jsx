@@ -1,5 +1,4 @@
-import { Button } from "@/components/ui/button";
-import LoginCard from "@/components/login";
+import LoginCard from "@/components/loginCard";
 
 export default function App() {
   return (
