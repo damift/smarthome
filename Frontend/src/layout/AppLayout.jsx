@@ -30,7 +30,7 @@ export default function AppLayout() {
             <div className="rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-2 text-sm">
               Admin User <span className="ml-2 rounded-full bg-white/10 px-2 py-0.5 text-xs">ADMIN</span>
             </div>
-            <Button variant="outline" onClick={logout}>
+            <Button variant="outline" onClick={handleLogout}>
               Logout
             </Button>
           </div>
