@@ -1,5 +1,4 @@
 import { Link } from "react-router-dom";
-
 import { Button } from "@/components/shadcn/button";
 import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
@@ -73,6 +72,12 @@ export default function LoginCard({
           >
             {loading ? "Logging in..." : "Login"}
           </Button>
+              <div className="text-center">
+                 <Link className="text-sm underline text-gray-500 hover:text-gray-700" to="/register">
+                        Create account
+               </Link>
+             </div>
+
 
           <div className="text-center">
             <Link

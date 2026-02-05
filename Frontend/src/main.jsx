@@ -3,23 +3,27 @@ import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./styles/index.css";
 
-import Login from "@/pages/LoginPage.jsx";
-import Dashboard from "@/pages/DashboardPage.jsx";
-import Routines from "@/pages/RoutinesPage.jsx";
-import History from "@/pages/HistoryPage.jsx";
-import Users from "@/pages/UsersManagementPage.jsx";
-import Devices from "@/pages/DeviceConfigPage.jsx";
-import AppLayout from "@/layout/AppLayout.jsx";
-import ProtectedRoute from "@/components/ProtectedRoute.jsx";
+import Login from "@/pages/LoginPage";
+import Register from "@/pages/RegisterPage";
+
+import Dashboard from "@/pages/DashboardPage";
+import Routines from "@/pages/RoutinesPage";
+import History from "@/pages/HistoryPage";
+import Users from "@/pages/UsersManagementPage";
+import Devices from "@/pages/DeviceConfigPage";
+
+import AppLayout from "@/layout/AppLayout";
+import ProtectedRoute from "@/components/ProtectedRoute";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
     <BrowserRouter>
       <Routes>
-        {/* public */}
+        {/* public routes */}
         <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
 
-        {/* protected */}
+        {/* protected routes */}
         <Route
           element={
             <ProtectedRoute>
@@ -36,7 +40,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         </Route>
 
         {/* fallback */}
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
   </React.StrictMode>

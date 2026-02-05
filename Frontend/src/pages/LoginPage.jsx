@@ -1,6 +1,7 @@
+import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import LoginCard from "@/components/loginCard";
-import { useLogin } from "@/hooks/useLogin";
+import { useLogin } from "@/components/hooks/useLogin";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -22,6 +23,8 @@ export default function LoginPage() {
         error={error}
         onSubmit={handleSubmit}
       />
+    
     </div>
+    
   );
 }
