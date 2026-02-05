@@ -1,5 +1,5 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { logoutMock } from "@/lib/auth";
+import { logout } from "@/lib/auth";
 import { Button } from "@/components/shadcn/button";
 
 const linkBase =
@@ -10,8 +10,8 @@ const linkIdle = "text-zinc-300 hover:bg-zinc-900/60 hover:text-white";
 export default function AppLayout() {
   const navigate = useNavigate();
 
-  function logout() {
-    logoutMock();
+  function handleLogout() {
+    logout();
     navigate("/login", { replace: true });
   }
 
