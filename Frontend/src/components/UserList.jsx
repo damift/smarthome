@@ -1,7 +1,7 @@
 import React from "react";
 import { Button } from "@/components/shadcn/button";
 
-export default function UserList({ users = [], onRoleChange, onRemove, showActions = true }) {
+export default function UserList({ users = [], onRoleChange, onRemove, showActions = true, deletingId = null }) {
   return (
     <div className="overflow-x-auto border border-zinc-900 rounded-lg">
       <table className="min-w-full table-fixed">
@@ -35,7 +35,9 @@ export default function UserList({ users = [], onRoleChange, onRemove, showActio
               </td>
               {showActions && (
                 <td className="px-6 py-4">
-                  <Button variant="destructive" size="sm" onClick={() => onRemove?.(u.id)}>Remove</Button>
+                  <Button variant="destructive" size="sm" onClick={() => onRemove?.(u.id)} disabled={deletingId === u.id}>
+                    {deletingId === u.id ? "Removing..." : "Remove"}
+                  </Button>
                 </td>
               )}
             </tr>

@@ -13,6 +13,7 @@ import {
 import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
 import UserList from "@/components/UserList";
+import { deleteUser as apiDeleteUser } from "@/services/users";
 import { getToken } from "@/lib/auth";
 
 export default function UsersManagementPage() {
@@ -20,14 +21,24 @@ export default function UsersManagementPage() {
   const [open, setOpen] = React.useState(false);
   const [form, setForm] = React.useState({ name: "", email: "", role: "user", password: "", password_confirmation: "" });
   const [loading, setLoading] = React.useState(false);
+  const [deletingId, setDeletingId] = React.useState(null);
 
   function handleRoleChange(id, newRole) {
     setUsers((u) => u.map((x) => (x.id === id ? { ...x, role: newRole } : x)));
   }
 
-  function handleRemove(id) {
+  async function handleRemove(id) {
     if (!confirm("Verwijder gebruiker?")) return;
-    setUsers((u) => u.filter((x) => x.id !== id));
+    try {
+      setDeletingId(id);
+      await apiDeleteUser(id);
+      setUsers((u) => u.filter((x) => x.id !== id));
+    } catch (err) {
+      console.error("Delete failed:", err);
+      alert(`Kon gebruiker niet verwijderen: ${err.message}`);
+    } finally {
+      setDeletingId(null);
+    }
   }
 
   function handleAdd() {
@@ -166,7 +177,7 @@ export default function UsersManagementPage() {
         </div>
       </div>
 
-      <UserList users={users} onRoleChange={handleRoleChange} onRemove={handleRemove} showActions={true} />
+      <UserList users={users} onRoleChange={handleRoleChange} onRemove={handleRemove} showActions={true} deletingId={deletingId} />
 
       <div className="text-sm text-zinc-500">Total: {users.length} users</div>
     </div>

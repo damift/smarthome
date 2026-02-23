@@ -33,4 +33,19 @@ export async function createUser({ name, email, password, password_confirmation,
   return handleResponse(res);
 }
 
-export default { getUsers, createUser };
+export async function deleteUser(id) {
+  const token = getToken();
+  const headers = token
+    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+    : { "Content-Type": "application/json" };
+
+  const res = await fetch(`${API_BASE}/api/users/${id}`, {
+    method: "DELETE",
+    headers,
+  });
+
+  if (res.status === 204) return null;
+  return handleResponse(res);
+}
+
+export default { getUsers, createUser, deleteUser };
