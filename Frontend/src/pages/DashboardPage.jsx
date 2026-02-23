@@ -1,16 +1,73 @@
-import { Link } from "react-router-dom";
-import React from "react";
+import React, { useState } from "react";
+import RoomSidebar from "../components/RoomSidebar";
+import HouseLayout from "../components/HouseLayout";
+
+// Mock data - Later vervangen met API calls
+const mockRooms = [
+  {
+    id: 1,
+    name: "Living Room",
+    deviceCount: 4,
+    activeDevices: 3,
+    devices: [
+      { name: "Light 1", type: "lightbulb", active: true },
+      { name: "Light 2", type: "lightbulb", active: true },
+      { name: "Thermostat", type: "thermostat", active: false },
+      { name: "Camera", type: "camera", active: true },
+    ],
+  },
+  {
+    id: 2,
+    name: "Bedroom",
+    deviceCount: 3,
+    activeDevices: 1,
+    devices: [
+      { name: "Light", type: "lightbulb", active: false },
+      { name: "Thermostat", type: "thermostat", active: true },
+      { name: "Door Lock", type: "lock", active: false },
+    ],
+  },
+  {
+    id: 3,
+    name: "Kitchen",
+    deviceCount: 3,
+    activeDevices: 3,
+    devices: [
+      { name: "Light 1", type: "lightbulb", active: true },
+      { name: "Light 2", type: "lightbulb", active: true },
+      { name: "Motion Sensor", type: "motion", active: true },
+    ],
+  },
+  {
+    id: 4,
+    name: "Bathroom",
+    deviceCount: 2,
+    activeDevices: 1,
+    devices: [
+      { name: "Light", type: "lightbulb", active: false },
+      { name: "Motion Sensor", type: "motion", active: true },
+    ],
+  },
+  {
+    id: 5,
+    name: "Garage",
+    deviceCount: 3,
+    activeDevices: 1,
+    devices: [
+      { name: "Light", type: "lightbulb", active: false },
+      { name: "Door Lock", type: "lock", active: true },
+      { name: "Camera", type: "camera", active: false },
+    ],
+  },
+];
 
 export default function DashboardPage() {
-  return (
-    <div className="space-y-4">
-      <h1 className="text-2xl font-semibold">Dashboard</h1>
-      <p className="text-zinc-400">Router test: dit is /dashboard</p>
+  const [selectedRoom, setSelectedRoom] = useState(null);
 
-      <div className=" w-screen flex flex-wrap gap-2">
-        <Link className="underline" to="/rooms/1">Go to Room 1</Link>
-        <Link className="underline" to="/rooms/2">Go to Room 2</Link>
-      </div>
+  return (
+    <div className="flex h-screen bg-zinc-50">
+      <RoomSidebar rooms={mockRooms} selectedRoom={selectedRoom} />
+      <HouseLayout rooms={mockRooms} />
     </div>
   );
 }
