@@ -87,19 +87,6 @@ export default function LoginCard({
               Forgot password?
             </Link>
           </div>
-
-          <div className="pt-2">
-            <div className="h-px w-full bg-gray-300" />
-          </div>
-
-          <div className="space-y-3 text-sm">
-            <div>Demo credentials:</div>
-            <div className="space-y-2">
-              <div>Admin: admin@smart.home / admin123</div>
-              <div>User: user@smart.home / user123</div>
-              <div>Visitor: visitor@smart.home / visitor123</div>
-            </div>
-          </div>
         </form>
       </CardContent>
     </Card>
