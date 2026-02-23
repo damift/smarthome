@@ -13,17 +13,13 @@ import {
 import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
 import UserList from "@/components/UserList";
-
-const initialUsers = [
-  { id: 1, name: "Admin User", email: "admin@smart.home", role: "Admin", status: "ACTIVE" },
-  { id: 2, name: "Regular User", email: "user@smart.home", role: "User", status: "ACTIVE" },
-  { id: 3, name: "Guest Visitor", email: "visitor@smart.home", role: "Visitor", status: "ACTIVE" },
-];
+import { getToken } from "@/lib/auth";
 
 export default function UsersManagementPage() {
-  const [users, setUsers] = React.useState(initialUsers);
+  const [users, setUsers] = React.useState([]);
   const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ name: "", email: "", role: "User" });
+  const [form, setForm] = React.useState({ name: "", email: "", role: "user", password: "", password_confirmation: "" });
+  const [loading, setLoading] = React.useState(false);
 
   function handleRoleChange(id, newRole) {
     setUsers((u) => u.map((x) => (x.id === id ? { ...x, role: newRole } : x)));
@@ -38,16 +34,76 @@ export default function UsersManagementPage() {
     setOpen(true);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const next = users.length + 1;
-    setUsers((u) => [
-      ...u,
-      { id: 100 + next, name: form.name || `New User ${next}`, email: form.email || `new${next}@smart.home`, role: form.role || "User", status: "ACTIVE" },
-    ]);
-    setForm({ name: "", email: "", role: "User" });
-    setOpen(false);
+    try {
+      setLoading(true);
+      const payload = {
+        name: form.name,
+        email: form.email,
+        password: form.password,
+        password_confirmation: form.password_confirmation,
+        role: form.role,
+      };
+      const res = await fetch("http://localhost:8080/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+      if (!res.ok) {
+        const errText = await res.text().catch(() => res.statusText);
+        throw new Error(errText || `${res.status}`);
+      }
+      // refresh list after successful create
+      const created = await res.json().catch(() => null);
+      // reload users by calling same loader
+      const token = getToken();
+      const headers = token ? { Authorization: `Bearer ${token}` } : {};
+      const listRes = await fetch("http://localhost:8080/api/user", { headers });
+      const listData = await listRes.json().catch(() => []);
+      let list = [];
+      if (Array.isArray(listData)) list = listData;
+      else if (listData.users) list = listData.users;
+      else if (listData.data && Array.isArray(listData.data)) list = listData.data;
+      else list = [listData];
+      setUsers(list.map((u) => ({ id: u.id ?? u.user_id ?? u.email, name: u.name ?? u.full_name ?? "", email: u.email ?? "", role: (u.role ?? "user"), status: u.status ?? "ACTIVE" })));
+      setForm({ name: "", email: "", role: "user", password: "", password_confirmation: "" });
+      setOpen(false);
+    } catch (err) {
+      console.error("Create user failed:", err);
+      alert(`Kan gebruiker niet aanmaken: ${err.message}`);
+    } finally {
+      setLoading(false);
+    }
   }
+
+  React.useEffect(() => {
+    async function load() {
+      setLoading(true);
+      try {
+        const token = getToken();
+        const headers = token ? { Authorization: `Bearer ${token}` } : {};
+        const res = await fetch("http://localhost:8080/api/user", { headers });
+        if (!res.ok) throw new Error(`${res.status} ${res.statusText}`);
+        const data = await res.json().catch(() => null);
+        // normalize: if array, use it; if object with users/data, extract; if single user object, wrap
+        let list = [];
+        if (Array.isArray(data)) list = data;
+        else if (data == null) list = [];
+        else if (data.users) list = data.users;
+        else if (data.data && Array.isArray(data.data)) list = data.data;
+        else list = [data];
+        setUsers(list.map((u) => ({ id: u.id ?? u.user_id ?? u.email, name: u.name ?? u.full_name ?? "", email: u.email ?? "", role: (u.role ?? "user"), status: u.status ?? "ACTIVE" })));
+      } catch (err) {
+        console.error("Failed to load users:", err);
+        // keep users empty
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    load();
+  }, []);
 
   return (
     <div className="space-y-4">
@@ -83,10 +139,19 @@ export default function UsersManagementPage() {
                 <div>
                   <Label>Role</Label>
                   <select className="mt-1 w-full rounded-md border px-3 py-2" value={form.role} onChange={(e) => setForm((f) => ({ ...f, role: e.target.value }))}>
-                    <option>Admin</option>
-                    <option>User</option>
-                    <option>Visitor</option>
+                    <option value="admin">Admin</option>
+                    <option value="user">User</option>
                   </select>
+                </div>
+
+                <div>
+                  <Label>Password</Label>
+                  <Input type="password" value={form.password} onChange={(e) => setForm((f) => ({ ...f, password: e.target.value }))} placeholder="Choose a password" />
+                </div>
+
+                <div>
+                  <Label>Confirm Password</Label>
+                  <Input type="password" value={form.password_confirmation} onChange={(e) => setForm((f) => ({ ...f, password_confirmation: e.target.value }))} placeholder="Confirm password" />
                 </div>
 
                 <DialogFooter className="pt-2">
