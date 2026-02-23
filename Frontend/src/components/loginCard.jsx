@@ -87,12 +87,6 @@ export default function LoginCard({
               Forgot password?
             </Link>
           </div>
-
-          <div className="pt-2">
-            <div className="h-px w-full bg-gray-300" />
-          </div>
-
-          
         </form>
       </CardContent>
     </Card>
