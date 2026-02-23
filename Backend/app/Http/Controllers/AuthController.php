@@ -56,11 +56,10 @@ class AuthController extends Controller
         return response()->json(['message' => 'Logged out']);
     }
 
-    public function user(Request $request)
-    {
-        return response()->json($request->user());
-    }
-
+public function user()
+{
+    return response()->json(User::all());
+}
     public function deleteUser(Request $request)
     {
         try {
