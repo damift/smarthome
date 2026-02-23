@@ -10,8 +10,8 @@ Route::post('/login',    [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
     Route::get('/user', [AuthController::class, 'user']);
-Route::middleware('auth:sanctum')->delete('/users/{id}');
-
+Route::middleware('auth:sanctum')
+    ->delete('/users/{id}', [AuthController::class, 'deleteUser']);
 Route::get('/test', [TestController::class, 'hello']);
 
 Route::get('/rooms', [RoomsController::class, 'index']);
