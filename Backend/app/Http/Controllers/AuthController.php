@@ -60,4 +60,33 @@ class AuthController extends Controller
     {
         return response()->json($request->user());
     }
+
+    public function deleteUser(Request $request)
+    {
+        try {
+            $user = $request->user();
+            
+            if (!$user) {
+                return response()->json([
+                    'message' => 'User not found'
+                ], 404);
+            }
+
+            // Delete all tokens for this user
+            $user->tokens()->delete();
+            
+            // Delete the user
+            $user->delete();
+
+            return response()->json([
+                'message' => 'User account deleted successfully'
+            ], 200);
+
+        } catch (\Exception $e) {
+            return response()->json([
+                'message' => 'Failed to delete user account',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
 }
