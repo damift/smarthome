@@ -62,32 +62,35 @@ public function user()
 {
     return response()->json(User::all());
 }
-    public function deleteUser(Request $request)
-    {
-        try {
-            $user = $request->user();
-            
-            if (!$user) {
-                return response()->json([
-                    'message' => 'User not found'
-                ], 404);
-            }
-
-            // Delete all tokens for this user
-            $user->tokens()->delete();
-            
-            // Delete the user
-            $user->delete();
-
-            return response()->json([
-                'message' => 'User account deleted successfully'
-            ], 200);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'message' => 'Failed to delete user account',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+    public function deleteUser(Request $request, $id)
+{
+    // Only admin can delete users
+    if ($request->user()->role !== 'admin') {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 403);
     }
+
+    $user = User::find($id);
+
+    if (!$user) {
+        return response()->json([
+            'message' => 'User not found'
+        ], 404);
+    }
+
+    // Prevent admin from deleting themselves (optional safety)
+    if ($user->id === $request->user()->id) {
+        return response()->json([
+            'message' => 'Admin cannot delete themselves'
+        ], 400);
+    }
+
+    $user->tokens()->delete();
+    $user->delete();
+
+    return response()->json([
+        'message' => 'User deleted successfully'
+    ], 200);
+}
 }

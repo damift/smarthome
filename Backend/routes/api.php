@@ -9,7 +9,6 @@ use App\Http\Controllers\RoomsController;
 Route::post('/login',    [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
-// Protected routes
     Route::get('/user', [AuthController::class, 'user']);
     Route::delete('/user', [AuthController::class, 'deleteUser']);
     Route::post('/logout', [AuthController::class, 'logout']);
