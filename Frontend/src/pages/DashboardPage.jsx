@@ -92,6 +92,10 @@ export default function DashboardPage() {
     fetchRooms();
   }, []);
 
+  const handleSelectRoom = (id) => {
+    setSelectedRoom((prev) => (prev === id ? null : id));
+  };
+
   if (loading) {
     return (
       <div className="flex items-center justify-center h-screen bg-zinc-50">
@@ -111,10 +115,12 @@ export default function DashboardPage() {
     );
   }
 
+  const displayedRooms = selectedRoom ? rooms.filter((r) => r.id === selectedRoom) : rooms;
+
   return (
     <div className="flex h-screen bg-zinc-50">
-      <RoomSidebar rooms={rooms} selectedRoom={selectedRoom} />
-      <HouseLayout rooms={rooms} />
+      <RoomSidebar rooms={rooms} selectedRoom={selectedRoom} onSelectRoom={handleSelectRoom} />
+      <HouseLayout rooms={displayedRooms} />
     </div>
   );
 }
