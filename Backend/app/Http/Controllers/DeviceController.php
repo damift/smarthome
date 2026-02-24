@@ -2,21 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\Device;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 
 class DeviceController extends Controller
 {
     public function index(Request $request)
     {
-        // Voor nu gebruiken we een JSON bestand of array, later kun je dit naar database migreren
-        $devices = [
-            ['id' => 1, 'name' => 'Main Ceiling Light', 'type' => 'LIGHT', 'room' => 'Living Room', 'status' => 'ON', 'icon' => '💡'],
-            ['id' => 2, 'name' => 'Corner Lamp', 'type' => 'LIGHT', 'room' => 'Living Room', 'status' => 'OFF', 'icon' => '💡'],
-            ['id' => 3, 'name' => 'Living Room Thermostat', 'type' => 'THERMOSTAT', 'room' => 'Living Room', 'status' => 'ON', 'icon' => '🌡️'],
-            ['id' => 4, 'name' => 'Security Camera', 'type' => 'CAMERA', 'room' => 'Living Room', 'status' => 'ON', 'icon' => '📷'],
-        ];
-
+        $devices = Device::all();
         return response()->json($devices);
     }
 
@@ -30,18 +23,13 @@ class DeviceController extends Controller
             'icon' => 'nullable|string|max:10',
         ]);
 
-        // Voor nu simuleren we het toevoegen
-        $device = [
-            'id' => rand(100, 999),
+        $device = Device::create([
             'name' => $request->name,
             'type' => $request->type,
             'room' => $request->room,
             'status' => $request->status,
             'icon' => $request->icon ?? $this->getDefaultIcon($request->type),
-        ];
-
-        // Hier zou je normaal het device in database opslaan
-        // Device::create($request->all());
+        ]);
 
         return response()->json([
             'message' => 'Device created successfully',
@@ -51,15 +39,7 @@ class DeviceController extends Controller
 
     public function show($id)
     {
-        // Simuleer het ophalen van een specifiek device
-        $devices = [
-            ['id' => 1, 'name' => 'Main Ceiling Light', 'type' => 'LIGHT', 'room' => 'Living Room', 'status' => 'ON', 'icon' => '💡'],
-            ['id' => 2, 'name' => 'Corner Lamp', 'type' => 'LIGHT', 'room' => 'Living Room', 'status' => 'OFF', 'icon' => '💡'],
-            ['id' => 3, 'name' => 'Living Room Thermostat', 'type' => 'THERMOSTAT', 'room' => 'Living Room', 'status' => 'ON', 'icon' => '🌡️'],
-            ['id' => 4, 'name' => 'Security Camera', 'type' => 'CAMERA', 'room' => 'Living Room', 'status' => 'ON', 'icon' => '📷'],
-        ];
-
-        $device = collect($devices)->firstWhere('id', (int)$id);
+        $device = Device::find($id);
 
         if (!$device) {
             return response()->json(['message' => 'Device not found'], 404);
@@ -70,6 +50,12 @@ class DeviceController extends Controller
 
     public function update(Request $request, $id)
     {
+        $device = Device::find($id);
+
+        if (!$device) {
+            return response()->json(['message' => 'Device not found'], 404);
+        }
+
         $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'type' => 'sometimes|required|string|in:LIGHT,THERMOSTAT,CAMERA,OUTLET,SENSOR',
@@ -78,15 +64,7 @@ class DeviceController extends Controller
             'icon' => 'nullable|string|max:10',
         ]);
 
-        // Simuleer update
-        $device = [
-            'id' => (int)$id,
-            'name' => $request->name ?? 'Updated Device',
-            'type' => $request->type ?? 'LIGHT',
-            'room' => $request->room ?? 'Living Room',
-            'status' => $request->status ?? 'OFF',
-            'icon' => $request->icon ?? '🔌',
-        ];
+        $device->update($request->only(['name', 'type', 'room', 'status', 'icon']));
 
         return response()->json([
             'message' => 'Device updated successfully',
@@ -96,9 +74,14 @@ class DeviceController extends Controller
 
     public function destroy($id)
     {
-        // Simuleer verwijdering
-        // Hier zou je normaal Device::find($id)->delete() doen
-        
+        $device = Device::find($id);
+
+        if (!$device) {
+            return response()->json(['message' => 'Device not found'], 404);
+        }
+
+        $device->delete();
+
         return response()->json([
             'message' => 'Device deleted successfully'
         ]);
@@ -106,12 +89,18 @@ class DeviceController extends Controller
 
     public function toggleStatus($id)
     {
-        // Toggle device status (ON/OFF)
-        $newStatus = rand(0, 1) ? 'ON' : 'OFF';
-        
+        $device = Device::find($id);
+
+        if (!$device) {
+            return response()->json(['message' => 'Device not found'], 404);
+        }
+
+        $device->status = $device->status === 'ON' ? 'OFF' : 'ON';
+        $device->save();
+
         return response()->json([
             'message' => 'Device status updated',
-            'status' => $newStatus
+            'device' => $device
         ]);
     }
 

@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Button } from "@/components/shadcn/button";
 import DeviceList from "@/components/DeviceList";
 import {
@@ -13,22 +13,43 @@ import {
 } from "@/components/shadcn/dialog";
 import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
-
-const sampleDevices = [
-  { id: 1, name: "Main Ceiling Light", type: "LIGHT", room: "Living Room", status: "ON", icon: "💡" },
-  { id: 2, name: "Corner Lamp", type: "LIGHT", room: "Living Room", status: "OFF", icon: "💡" },
-  { id: 3, name: "Living Room Thermostat", type: "THERMOSTAT", room: "Living Room", status: "ON", icon: "🌡️" },
-  { id: 4, name: "Security Camera", type: "CAMERA", room: "Living Room", status: "ON", icon: "📷" },
-];
+import { devicesService } from "../services/devicesService";
 
 export default function DeviceConfigPage() {
-  const [devices, setDevices] = React.useState(sampleDevices);
-  const [open, setOpen] = React.useState(false);
-  const [form, setForm] = React.useState({ name: "", type: "LIGHT", room: "Living Room", status: "OFF" });
+  const [devices, setDevices] = useState([]);
+  const [open, setOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [form, setForm] = useState({ name: "", type: "LIGHT", room: "Living Room", status: "OFF" });
 
-  function handleDelete(id) {
+  // Fetch devices on component mount
+  useEffect(() => {
+    fetchDevices();
+  }, []);
+
+  async function fetchDevices() {
+    try {
+      setLoading(true);
+      const data = await devicesService.getDevices();
+      setDevices(data);
+      setError(null);
+    } catch (err) {
+      setError(err.message);
+      console.error("Failed to fetch devices:", err);
+    } finally {
+      setLoading(false);
+    }
+  }
+
+  async function handleDelete(id) {
     if (!confirm("Delete device?")) return;
-    setDevices((d) => d.filter((x) => x.id !== id));
+    try {
+      await devicesService.deleteDevice(id);
+      setDevices((d) => d.filter((x) => x.id !== id));
+    } catch (err) {
+      setError(err.message);
+      console.error("Failed to delete device:", err);
+    }
   }
 
   function handleEdit(id) {
@@ -36,12 +57,53 @@ export default function DeviceConfigPage() {
     alert(`Edit device ${id}`);
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
-    const next = devices.length + 1;
-    setDevices((d) => [...d, { id: 100 + next, name: form.name || `Device ${next}`, type: form.type, room: form.room, status: form.status }]);
-    setForm({ name: "", type: "LIGHT", room: "Living Room", status: "OFF" });
-    setOpen(false);
+    try {
+      const newDevice = {
+        name: form.name || `Device ${devices.length + 1}`,
+        type: form.type,
+        room: form.room,
+        status: form.status,
+      };
+      const response = await devicesService.createDevice(newDevice);
+      setDevices((d) => [...d, response.device]);
+      setForm({ name: "", type: "LIGHT", room: "Living Room", status: "OFF" });
+      setOpen(false);
+    } catch (err) {
+      setError(err.message);
+      console.error("Failed to create device:", err);
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-zinc-50">
+        <p className="text-zinc-600">Loading devices...</p>
+      </div>
+    );
+  }
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-zinc-50">
+        <p className="text-zinc-600">Loading devices...</p>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="flex items-center justify-center h-screen bg-zinc-50">
+        <div className="text-center">
+          <p className="text-red-600 mb-2">Error loading devices</p>
+          <p className="text-zinc-600">{error}</p>
+          <button onClick={fetchDevices} className="mt-4 px-4 py-2 rounded-md bg-zinc-900 text-white">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -95,6 +157,12 @@ export default function DeviceConfigPage() {
           </Dialog>
         </div>
       </div>
+
+      {error && (
+        <div className="p-4 bg-red-50 border border-red-200 rounded-md">
+          <p className="text-red-800">{error}</p>
+        </div>
+      )}
 
       <DeviceList devices={devices} onEdit={handleEdit} onDelete={handleDelete} />
 
