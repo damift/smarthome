@@ -9,14 +9,16 @@ export const devicesService = {
       });
 
       if (!response.ok) {
-        throw new Error(`Failed to fetch devices: ${response.statusText}`);
+        console.warn(`devicesService: response not ok ${response.status} ${response.statusText}`);
+        return [];
       }
 
       const data = await response.json();
       return data;
     } catch (error) {
-      console.error("Error fetching devices:", error);
-      throw error;
+      console.warn("devicesService: error fetching devices:", error);
+      // Return empty list as a graceful fallback so the UI stays usable
+      return [];
     }
   },
 
