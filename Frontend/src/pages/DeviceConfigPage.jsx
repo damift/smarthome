@@ -14,6 +14,7 @@ import {
 import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
 import { devicesService } from "../services/devicesService";
+import { toast } from "sonner";
 import { roomsService } from "../services/roomsService";
 
 export default function DeviceConfigPage() {
@@ -56,8 +57,10 @@ export default function DeviceConfigPage() {
     try {
       await devicesService.deleteDevice(id);
       setDevices((d) => d.filter((x) => x.id !== id));
+      toast.success("Device deleted");
     } catch (err) {
       setError(err.message);
+      toast.error(err.message || "Failed to delete device");
       console.error("Failed to delete device:", err);
     }
   }
@@ -92,9 +95,11 @@ export default function DeviceConfigPage() {
       setForm({ name: "", type: "LIGHT", room_id: rooms.length > 0 ? rooms[0].id.toString() : "", status: "OFF" });
       setOpen(false);
       setError(null);
+      toast.success("Device created");
     } catch (err) {
       console.error("Full error object:", err);
       setError(err.message || "Failed to create device");
+      toast.error(err.message || "Failed to create device");
     }
   }
 

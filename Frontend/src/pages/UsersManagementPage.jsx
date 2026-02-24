@@ -14,6 +14,7 @@ import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
 import UserList from "@/components/UserList";
 import { deleteUser as apiDeleteUser } from "@/services/users";
+import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
 
 export default function UsersManagementPage() {
@@ -35,9 +36,10 @@ export default function UsersManagementPage() {
       setDeletingId(id);
       await apiDeleteUser(id);
       setUsers((u) => u.filter((x) => x.id !== id));
+      toast.success("Gebruiker verwijderd");
     } catch (err) {
       console.error("Delete failed:", err);
-      alert(`Kon gebruiker niet verwijderen: ${err.message}`);
+      toast.error(`Kon gebruiker niet verwijderen: ${err.message}`);
     } finally {
       setDeletingId(null);
     }
@@ -122,9 +124,11 @@ export default function UsersManagementPage() {
       setFormErrors({});
       setSubmitError(null);
       setOpen(false);
+      toast.success("Gebruiker aangemaakt");
     } catch (err) {
       console.error("Create user failed:", err);
       setSubmitError(err.message || "An unexpected error occurred");
+      toast.error(err.message || "An unexpected error occurred");
     } finally {
       setLoading(false);
     }

@@ -3,6 +3,7 @@ import { Button } from "@/components/shadcn/button";
 import AuthCard from "@/components/auth/AuthCard";
 import AuthTextField from "@/components/auth/AuthTextField";
 import { useRegister } from "@/components/hooks/useRegister";
+import { toast } from "sonner";
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -17,7 +18,12 @@ export default function RegisterPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     const result = await submit();
-    if (result.ok) navigate("/dashboard", { replace: true });
+    if (result.ok) {
+      toast.success("Account created");
+      navigate("/dashboard", { replace: true });
+    } else {
+      toast.error("Registration failed");
+    }
   }
 
   return (

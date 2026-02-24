@@ -2,6 +2,7 @@ import React from "react";
 import ReactDOM from "react-dom/client";
 import { BrowserRouter, Routes, Route, Navigate } from "react-router-dom";
 import "./styles/index.css";
+import { Toaster } from "@/components/shadcn/sonner";
 
 import Login from "@/pages/LoginPage";
 import Register from "@/pages/RegisterPage";
@@ -43,5 +44,6 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="*" element={<Navigate to="/login" replace />} />
       </Routes>
     </BrowserRouter>
+    <Toaster />
   </React.StrictMode>
 );
