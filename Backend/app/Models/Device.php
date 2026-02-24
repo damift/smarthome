@@ -17,7 +17,7 @@ class Device extends Model
     protected $fillable = [
         'name',
         'type',
-        'room',
+        'room_id',
         'status',
         'icon',
     ];

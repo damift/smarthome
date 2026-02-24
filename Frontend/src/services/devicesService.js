@@ -47,11 +47,17 @@ export const devicesService = {
         body: JSON.stringify(device),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error(`Failed to create device: ${response.statusText}`);
+        // Check if error response has validation messages
+        if (data.errors) {
+          const errorMessages = Object.values(data.errors).flat().join(", ");
+          throw new Error(errorMessages);
+        }
+        throw new Error(data.message || `Failed to create device: ${response.statusText}`);
       }
 
-      const data = await response.json();
       return data;
     } catch (error) {
       console.error("Error creating device:", error);

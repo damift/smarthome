@@ -57,10 +57,10 @@ export default function DashboardPage() {
             icon: d.icon || null,
           };
 
-          if (d.room_id || d.roomId) {
-            const rid = d.room_id || d.roomId;
-            devicesByRoomId[rid] = devicesByRoomId[rid] || [];
-            devicesByRoomId[rid].push(dev);
+          // Group by room_id (new system) or room name (fallback)
+          if (d.room_id) {
+            devicesByRoomId[d.room_id] = devicesByRoomId[d.room_id] || [];
+            devicesByRoomId[d.room_id].push(dev);
           } else if (d.room) {
             devicesByRoomName[d.room] = devicesByRoomName[d.room] || [];
             devicesByRoomName[d.room].push(dev);

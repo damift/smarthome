@@ -18,7 +18,7 @@ class DeviceController extends Controller
         $request->validate([
             'name' => 'required|string|max:255',
             'type' => 'required|string|in:LIGHT,THERMOSTAT,CAMERA,OUTLET,SENSOR',
-            'room' => 'required|string|max:255',
+            'room_id' => 'required|exists:rooms,id',
             'status' => 'required|string|in:ON,OFF',
             'icon' => 'nullable|string|max:10',
         ]);
@@ -26,7 +26,7 @@ class DeviceController extends Controller
         $device = Device::create([
             'name' => $request->name,
             'type' => $request->type,
-            'room' => $request->room,
+            'room_id' => $request->room_id,
             'status' => $request->status,
             'icon' => $request->icon ?? $this->getDefaultIcon($request->type),
         ]);
@@ -59,12 +59,12 @@ class DeviceController extends Controller
         $request->validate([
             'name' => 'sometimes|required|string|max:255',
             'type' => 'sometimes|required|string|in:LIGHT,THERMOSTAT,CAMERA,OUTLET,SENSOR',
-            'room' => 'sometimes|required|string|max:255',
+            'room_id' => 'sometimes|required|exists:rooms,id',
             'status' => 'sometimes|required|string|in:ON,OFF',
             'icon' => 'nullable|string|max:10',
         ]);
 
-        $device->update($request->only(['name', 'type', 'room', 'status', 'icon']));
+        $device->update($request->only(['name', 'type', 'room_id', 'status', 'icon']));
 
         return response()->json([
             'message' => 'Device updated successfully',
