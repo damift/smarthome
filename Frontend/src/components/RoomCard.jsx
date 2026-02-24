@@ -46,7 +46,7 @@ export default function RoomCard({
             }`}
             title={device.name}
           >
-            {deviceIcons[device.type] || "⚙️"}
+            {device.icon || deviceIcons[device.type] || "⚙️"}
           </div>
         ))}
       </div>
