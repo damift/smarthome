@@ -5,6 +5,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TestController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoomsController;
+use App\Http\Controllers\DeviceController;
 
 Route::post('/login',    [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -15,5 +16,15 @@ Route::middleware('auth:sanctum')
 Route::get('/test', [TestController::class, 'hello']);
 
 Route::get('/rooms', [RoomsController::class, 'index']);
+
+// Device API endpoints
+Route::prefix('devices')->group(function () {
+    Route::get('/', [DeviceController::class, 'index']);
+    Route::post('/', [DeviceController::class, 'store']);
+    Route::get('/{id}', [DeviceController::class, 'show']);
+    Route::put('/{id}', [DeviceController::class, 'update']);
+    Route::delete('/{id}', [DeviceController::class, 'destroy']);
+    Route::post('/{id}/toggle', [DeviceController::class, 'toggleStatus']);
+});
 
 
