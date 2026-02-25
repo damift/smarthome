@@ -53,7 +53,7 @@ export default function RoomCard({
 
       {/* View Details link */}
       <Link
-        to={`/rooms/${id}`}
+        to={`/rooms/${encodeURIComponent(name)}`}
         className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center gap-0 transition-colors"
       >
         View Details

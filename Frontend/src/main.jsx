@@ -8,6 +8,7 @@ import Login from "@/pages/LoginPage";
 import Register from "@/pages/RegisterPage";
 
 import Dashboard from "@/pages/DashboardPage";
+import RoomDetail from "@/pages/RoomDetailPage";
 import Routines from "@/pages/RoutinesPage";
 import History from "@/pages/HistoryPage";
 import Users from "@/pages/UsersManagementPage";
@@ -34,6 +35,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         >
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/rooms/:roomId" element={<RoomDetail />} />
           <Route path="/routines" element={<Routines />} />
           <Route path="/history" element={<History />} />
           <Route path="/users" element={<Users />} />
