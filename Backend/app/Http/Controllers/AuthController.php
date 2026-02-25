@@ -102,4 +102,28 @@ public function user()
         ], 500);
     }
 }
+
+public function updateRole(Request $request, $id)
+{
+    // Only admin can change roles
+    if ($request->user()->role !== 'admin') {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 403);
+    }
+
+    $request->validate([
+        'role' => 'required|string|in:admin,user'
+    ]);
+
+    $user = User::findOrFail($id);
+
+    $user->role = $request->role;
+    $user->save();
+
+    return response()->json([
+        'message' => 'Role updated successfully',
+        'user' => $user
+    ]);
+}
 }

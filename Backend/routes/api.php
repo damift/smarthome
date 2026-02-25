@@ -27,4 +27,7 @@ Route::prefix('devices')->group(function () {
     Route::post('/{id}/toggle', [DeviceController::class, 'toggleStatus']);
 });
 
+// endpoint to update user role 
+Route::middleware('auth:sanctum')
+    ->put('/users/{id}/role', [AuthController::class, 'updateRole']);
 

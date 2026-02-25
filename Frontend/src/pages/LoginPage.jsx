@@ -2,6 +2,7 @@ import { Link } from "react-router-dom";
 import { useNavigate } from "react-router-dom";
 import LoginCard from "@/components/loginCard";
 import { useLogin } from "@/components/hooks/useLogin";
+import { toast } from "sonner";
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -9,7 +10,12 @@ export default function LoginPage() {
 
   async function handleSubmit() {
     const result = await submit();
-    if (result.ok) navigate("/dashboard", { replace: true });
+    if (result.ok) {
+      toast.success("Logged in");
+      navigate("/dashboard", { replace: true });
+    } else {
+      toast.error("Login failed");
+    }
   }
 
   return (

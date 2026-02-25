@@ -1,28 +1,31 @@
-import React, { useMemo } from "react";
+import React, { useState, useEffect } from "react";
 import HistoryFilters from "@/components/HistoryFilters";
 import ExportButtons from "@/components/ExportButtons";
 import HistoryTable from "@/components/HistoryTable";
-
-const raw = [
-  { id: 1, room: "Living Room", title: "Light turned on", description: "Ceiling light was switched on via schedule." },
-  { id: 2, room: "Kitchen", title: "Motion detected", description: "Motion sensor detected movement near the counter." },
-  { id: 3, room: "Garage", title: "Door unlocked", description: "Garage door was unlocked using mobile app." },
-  { id: 4, room: "Bedroom", title: "Temperature set", description: "Thermostat target temperature changed to 21°C." },
-  { id: 5, room: "Bathroom", title: "Camera snapshot", description: "Camera captured a snapshot at 07:12." },
-];
+import { historyService } from "@/services/historyService";
 
 export default function HistoryPage() {
-  const items = useMemo(() => {
-    const now = Date.now();
-    return raw.map((r, idx) => ({
-      id: r.id,
-      timestamp: new Date(now - [2 * 60 * 1000, 12 * 60 * 1000, 60 * 60 * 1000, 24 * 60 * 60 * 1000, 2 * 24 * 60 * 60 * 1000][idx] || 0).toISOString(),
-      user: idx % 2 === 0 ? "System" : "Imad",
-      room: r.room,
-      device: r.title.split(" ")[0],
-      action: r.title,
-      note: r.description,
-    }));
+  const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
+  useEffect(() => {
+    async function fetchLogs() {
+      try {
+        setLoading(true);
+        const data = await historyService.getLogs();
+        setItems(data);
+        setError(null);
+      } catch (err) {
+        setError(err.message);
+        console.error("Failed to fetch history logs:", err);
+        setItems([]);
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    fetchLogs();
   }, []);
 
   return (
@@ -32,20 +35,37 @@ export default function HistoryPage() {
         <p className="text-zinc-400">Overview of recent activity and events</p>
       </div>
 
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center justify-between gap-4">
-          <div className="flex-1">
-            <HistoryFilters />
-          </div>
-          <div>
-            <ExportButtons items={items} filenamePrefix="history-export" />
+      {loading && (
+        <div className="flex items-center justify-center p-8">
+          <p className="text-zinc-600">Loading history...</p>
+        </div>
+      )}
+
+      {error && (
+        <div className="flex items-center justify-center p-8">
+          <div className="text-center">
+            <p className="text-red-600 mb-2">Error loading history</p>
+            <p className="text-zinc-600 text-sm">{error}</p>
           </div>
         </div>
+      )}
 
-        <HistoryTable items={items} />
+      {!loading && !error && (
+        <div className="flex flex-col gap-4">
+          <div className="flex items-center justify-between gap-4">
+            <div className="flex-1">
+              <HistoryFilters />
+            </div>
+            <div>
+              <ExportButtons items={items} filenamePrefix="history-export" />
+            </div>
+          </div>
 
-        <div className="text-sm text-zinc-500">Showing {items.length} of {items.length} logs</div>
-      </div>
+          <HistoryTable items={items} />
+
+          <div className="text-sm text-zinc-500">Showing {items.length} of {items.length} logs</div>
+        </div>
+      )}
     </div>
   );
 }

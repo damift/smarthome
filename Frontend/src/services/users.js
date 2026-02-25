@@ -48,4 +48,19 @@ export async function deleteUser(id) {
   return handleResponse(res);
 }
 
-export default { getUsers, createUser, deleteUser };
+export async function assignRole(id, role) {
+  const token = getToken();
+  const headers = token
+    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
+    : { "Content-Type": "application/json" };
+
+  const res = await fetch(`${API_BASE}/api/users/${id}/role`, {
+    method: "POST",
+    headers,
+    body: JSON.stringify({ role }),
+  });
+
+  return handleResponse(res);
+}
+
+export default { getUsers, createUser, deleteUser, assignRole };
