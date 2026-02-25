@@ -21,6 +21,11 @@ import {
 } from "@/services/users";
 import { toast } from "sonner";
 
+function normalizeRole(role) {
+  const value = String(role ?? "user").trim().toLowerCase();
+  return value === "admin" ? "admin" : "user";
+}
+
 function normalizeUsersResponse(data) {
   let list = [];
 
@@ -34,7 +39,7 @@ function normalizeUsersResponse(data) {
     id: u.id ?? u.user_id ?? u.email,
     name: u.name ?? u.full_name ?? "",
     email: u.email ?? "",
-    role: u.role ?? "user",
+    role: normalizeRole(u.role), // <-- altijd lowercase opslaan in frontend state
     status: u.status ?? "ACTIVE",
   }));
 }
@@ -46,7 +51,7 @@ export default function UsersManagementPage() {
   const [form, setForm] = React.useState({
     name: "",
     email: "",
-    role: "user",
+    role: "user", // lowercase
     password: "",
     password_confirmation: "",
   });
@@ -78,25 +83,27 @@ export default function UsersManagementPage() {
   }, [loadUsers]);
 
   async function handleRoleChange(id, newRole) {
+    const normalizedNewRole = normalizeRole(newRole);
+
     const currentUser = users.find((u) => u.id === id);
-    const previousRole = currentUser?.role;
+    const previousRole = normalizeRole(currentUser?.role);
 
     if (!currentUser) return;
-    if (previousRole === newRole) return;
+    if (previousRole === normalizedNewRole) return;
 
     // Optimistic update
     setUsers((prev) =>
-      prev.map((u) => (u.id === id ? { ...u, role: newRole } : u))
+      prev.map((u) => (u.id === id ? { ...u, role: normalizedNewRole } : u))
     );
     setUpdatingRoleId(id);
 
     try {
-      await apiAssignRole(id, newRole);
-      toast.success(`Role gewijzigd naar ${newRole}`);
+      await apiAssignRole(id, normalizedNewRole); // <-- altijd lowercase naar backend
+      toast.success(`Role gewijzigd naar ${normalizedNewRole}`);
     } catch (err) {
       console.error("Failed to assign role:", err);
 
-      // Revert correct terug naar vorige rol
+      // Revert naar vorige rol
       setUsers((prev) =>
         prev.map((u) => (u.id === id ? { ...u, role: previousRole } : u))
       );
@@ -129,7 +136,7 @@ export default function UsersManagementPage() {
     setForm({
       name: "",
       email: "",
-      role: "user",
+      role: "user", // lowercase
       password: "",
       password_confirmation: "",
     });
@@ -179,7 +186,7 @@ export default function UsersManagementPage() {
         email: form.email.trim(),
         password: form.password,
         password_confirmation: form.password_confirmation,
-        role: form.role,
+        role: normalizeRole(form.role), // <-- lowercase naar backend
       });
 
       await loadUsers();
@@ -199,7 +206,6 @@ export default function UsersManagementPage() {
     } catch (err) {
       console.error("Create user failed:", err);
 
-      // Laravel validation errors netjes mappen
       if (err?.data?.errors && typeof err.data.errors === "object") {
         const fieldErrors = {};
         for (const [field, messages] of Object.entries(err.data.errors)) {
@@ -248,10 +254,7 @@ export default function UsersManagementPage() {
 
             <form onSubmit={handleSubmit} className="space-y-4">
               <div>
-                <Label
-                  htmlFor="name"
-                  className={formErrors.name ? "text-red-600" : ""}
-                >
+                <Label htmlFor="name" className={formErrors.name ? "text-red-600" : ""}>
                   Name
                 </Label>
                 <Input
@@ -272,10 +275,7 @@ export default function UsersManagementPage() {
               </div>
 
               <div>
-                <Label
-                  htmlFor="email"
-                  className={formErrors.email ? "text-red-600" : ""}
-                >
+                <Label htmlFor="email" className={formErrors.email ? "text-red-600" : ""}>
                   Email
                 </Label>
                 <Input
@@ -301,21 +301,19 @@ export default function UsersManagementPage() {
                 <select
                   id="role"
                   className="mt-1 w-full rounded-md border px-3 py-2"
-                  value={form.role}
+                  value={normalizeRole(form.role)}
                   onChange={(e) =>
-                    setForm((f) => ({ ...f, role: e.target.value }))
+                    setForm((f) => ({ ...f, role: normalizeRole(e.target.value) }))
                   }
                 >
+                  {/* labels met hoofdletter, values lowercase */}
                   <option value="admin">Admin</option>
                   <option value="user">User</option>
                 </select>
               </div>
 
               <div>
-                <Label
-                  htmlFor="password"
-                  className={formErrors.password ? "text-red-600" : ""}
-                >
+                <Label htmlFor="password" className={formErrors.password ? "text-red-600" : ""}>
                   Password
                 </Label>
                 <Input
