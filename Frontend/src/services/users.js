@@ -2,46 +2,77 @@ import { getToken } from "@/lib/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 
+function getAuthHeaders(includeJson = false) {
+  const token = getToken();
+  const headers = {};
+
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (includeJson) {
+    headers["Content-Type"] = "application/json";
+    headers.Accept = "application/json";
+  }
+
+  return headers;
+}
+
 async function handleResponse(res) {
   const text = await res.text().catch(() => "");
-  const data = text ? JSON.parse(text) : null;
+  let data = null;
+
+  try {
+    data = text ? JSON.parse(text) : null;
+  } catch {
+    data = null;
+  }
+
   if (!res.ok) {
-    const msg = data?.message || data?.error || text || `${res.status} ${res.statusText}`;
+    const msg =
+      data?.message ||
+      data?.error ||
+      text ||
+      `${res.status} ${res.statusText}`;
+
     const err = new Error(msg);
     err.status = res.status;
     err.data = data;
     throw err;
   }
+
   return data;
 }
 
 export async function getUsers() {
-  const token = getToken();
-  const headers = token ? { Authorization: `Bearer ${token}` } : {};
-  const res = await fetch(`${API_BASE}/api/user`, { headers });
+  const res = await fetch(`${API_BASE}/api/user`, {
+    method: "GET",
+    headers: getAuthHeaders(),
+  });
+
   return handleResponse(res);
 }
 
-export async function createUser({ name, email, password, password_confirmation, role }) {
+export async function createUser({
+  name,
+  email,
+  password,
+  password_confirmation,
+  role,
+}) {
   const body = { name, email, password, password_confirmation };
   if (role) body.role = role;
+
   const res = await fetch(`${API_BASE}/api/register`, {
     method: "POST",
-    headers: { "Content-Type": "application/json" },
+    headers: getAuthHeaders(true), // pakt token mee als aanwezig
     body: JSON.stringify(body),
   });
+
   return handleResponse(res);
 }
 
 export async function deleteUser(id) {
-  const token = getToken();
-  const headers = token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-
   const res = await fetch(`${API_BASE}/api/users/${id}`, {
     method: "DELETE",
-    headers,
+    headers: getAuthHeaders(true),
   });
 
   if (res.status === 204) return null;
@@ -49,18 +80,20 @@ export async function deleteUser(id) {
 }
 
 export async function assignRole(id, role) {
-  const token = getToken();
-  const headers = token
-    ? { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }
-    : { "Content-Type": "application/json" };
-
+  // Backend gaf aan dat deze endpoint PUT verwacht
+  // Als jouw backend route anders is, pas alleen de URL aan (bijv. /api/users/${id})
   const res = await fetch(`${API_BASE}/api/users/${id}/role`, {
-    method: "POST",
-    headers,
+    method: "PUT",
+    headers: getAuthHeaders(true),
     body: JSON.stringify({ role }),
   });
 
   return handleResponse(res);
 }
 
-export default { getUsers, createUser, deleteUser, assignRole };
+export default {
+  getUsers,
+  createUser,
+  deleteUser,
+  assignRole,
+};
