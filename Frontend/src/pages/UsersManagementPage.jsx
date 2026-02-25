@@ -13,7 +13,7 @@ import {
 import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
 import UserList from "@/components/UserList";
-import { deleteUser as apiDeleteUser } from "@/services/users";
+import { deleteUser as apiDeleteUser, assignRole as apiAssignRole } from "@/services/users";
 import { toast } from "sonner";
 import { getToken } from "@/lib/auth";
 
@@ -28,6 +28,18 @@ export default function UsersManagementPage() {
 
   function handleRoleChange(id, newRole) {
     setUsers((u) => u.map((x) => (x.id === id ? { ...x, role: newRole } : x)));
+    
+    // Call API to assign role
+    apiAssignRole(id, newRole)
+      .then(() => {
+        toast.success(`Role gewijzigd naar ${newRole}`);
+      })
+      .catch((err) => {
+        console.error("Failed to assign role:", err);
+        toast.error(`Kon rol niet wijzigen: ${err.message}`);
+        // Revert the change on error
+        setUsers((u) => u.map((x) => (x.id === id ? { ...x, role: x.role } : x)));
+      });
   }
 
   async function handleRemove(id) {
