@@ -1,133 +1,144 @@
+import { getToken } from "@/lib/auth";
+
 const API_BASE_URL = "http://localhost:8080/api";
+
+function authHeaders(json = false) {
+  const token = getToken();
+  const headers = {};
+
+  if (token) headers.Authorization = `Bearer ${token}`;
+  if (json) headers["Content-Type"] = "application/json";
+  headers.Accept = "application/json";
+
+  return headers;
+}
+
+async function readJsonSafe(res) {
+  const text = await res.text().catch(() => "");
+  if (!text) return null;
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
+
+function ensureArray(data) {
+  // ondersteunt: [], {data: []}, {devices: []}, single object
+  if (Array.isArray(data)) return data;
+  if (data && Array.isArray(data.data)) return data.data;
+  if (data && Array.isArray(data.devices)) return data.devices;
+  if (data && typeof data === "object") return [data];
+  return [];
+}
 
 export const devicesService = {
   async getDevices() {
-    try {
-      const response = await fetch(`${API_BASE_URL}/devices`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+    const response = await fetch(`${API_BASE_URL}/devices`, {
+      method: "GET",
+      headers: authHeaders(false),
+    });
 
-      if (!response.ok) {
-        console.warn(`devicesService: response not ok ${response.status} ${response.statusText}`);
-        return [];
-      }
+    const data = await readJsonSafe(response);
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.warn("devicesService: error fetching devices:", error);
-      // Return empty list as a graceful fallback so the UI stays usable
-      return [];
+    if (!response.ok) {
+      const msg =
+        data?.message ||
+        data?.error ||
+        `${response.status} ${response.statusText}`;
+      // Niet meer doen alsof het “gewoon leeg” is.
+      throw new Error(msg);
     }
+
+    return ensureArray(data);
   },
 
   async getDeviceById(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
-        method: "GET",
-        headers: { "Content-Type": "application/json" },
-      });
+    const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
+      method: "GET",
+      headers: authHeaders(false),
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to fetch device: ${response.statusText}`);
-      }
+    const data = await readJsonSafe(response);
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error fetching device:", error);
-      throw error;
+    if (!response.ok) {
+      const msg =
+        data?.message ||
+        data?.error ||
+        `Failed to fetch device: ${response.status} ${response.statusText}`;
+      throw new Error(msg);
     }
+
+    return data;
   },
 
   async createDevice(device) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/devices`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(device),
-      });
+    const response = await fetch(`${API_BASE_URL}/devices`, {
+      method: "POST",
+      headers: authHeaders(true),
+      body: JSON.stringify(device),
+    });
 
-      const data = await response.json();
+    const data = await readJsonSafe(response);
 
-      if (!response.ok) {
-        // Check if error response has validation messages
-        if (data.errors) {
-          const errorMessages = Object.values(data.errors).flat().join(", ");
-          throw new Error(errorMessages);
-        }
-        throw new Error(data.message || `Failed to create device: ${response.statusText}`);
+    if (!response.ok) {
+      if (data?.errors) {
+        const errorMessages = Object.values(data.errors).flat().join(", ");
+        throw new Error(errorMessages);
       }
-
-      return data;
-    } catch (error) {
-      console.error("Error creating device:", error);
-      throw error;
+      throw new Error(data?.message || `Failed to create device: ${response.status} ${response.statusText}`);
     }
+
+    return data;
   },
 
   async updateDevice(id, device) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(device),
-      });
+    const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
+      method: "PUT",
+      headers: authHeaders(true),
+      body: JSON.stringify(device),
+    });
 
-      const data = await response.json();
+    const data = await readJsonSafe(response);
 
-      if (!response.ok) {
-        // Check if error response has validation messages
-        if (data.errors) {
-          const errorMessages = Object.values(data.errors).flat().join(", ");
-          throw new Error(errorMessages);
-        }
-        throw new Error(data.message || `Failed to update device: ${response.statusText}`);
+    if (!response.ok) {
+      if (data?.errors) {
+        const errorMessages = Object.values(data.errors).flat().join(", ");
+        throw new Error(errorMessages);
       }
-
-      return data;
-    } catch (error) {
-      console.error("Error updating device:", error);
-      throw error;
+      throw new Error(data?.message || `Failed to update device: ${response.status} ${response.statusText}`);
     }
+
+    return data;
   },
 
   async deleteDevice(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
-        method: "DELETE",
-        headers: { "Content-Type": "application/json" },
-      });
+    const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
+      method: "DELETE",
+      headers: authHeaders(false),
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to delete device: ${response.statusText}`);
-      }
+    const data = await readJsonSafe(response);
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error deleting device:", error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(data?.message || `Failed to delete device: ${response.status} ${response.statusText}`);
     }
+
+    return data;
   },
 
   async toggleDevice(id) {
-    try {
-      const response = await fetch(`${API_BASE_URL}/devices/${id}/toggle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-      });
+    const response = await fetch(`${API_BASE_URL}/devices/${id}/toggle`, {
+      method: "POST",
+      headers: authHeaders(false),
+    });
 
-      if (!response.ok) {
-        throw new Error(`Failed to toggle device: ${response.statusText}`);
-      }
+    const data = await readJsonSafe(response);
 
-      const data = await response.json();
-      return data;
-    } catch (error) {
-      console.error("Error toggling device:", error);
-      throw error;
+    if (!response.ok) {
+      throw new Error(data?.message || `Failed to toggle device: ${response.status} ${response.statusText}`);
     }
+
+    return data;
   },
 };
