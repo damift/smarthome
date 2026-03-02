@@ -16,17 +16,19 @@ import { Label } from "@/components/shadcn/label";
 import { devicesService } from "../services/devicesService";
 import { toast } from "sonner";
 import { roomsService } from "../services/roomsService";
+import { typesService } from "../services/typesService";
 
 export default function DeviceConfigPage() {
   const [devices, setDevices] = useState([]);
   const [rooms, setRooms] = useState([]);
+  const [types, setTypes] = useState([]);
   const [open, setOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [form, setForm] = useState({ name: "", type: "LIGHT", room_id: "", status: "OFF" });
-  const [editForm, setEditForm] = useState({ name: "", type: "LIGHT", room_id: "", status: "OFF" });
+  const [form, setForm] = useState({ name: "", type_id: null, room_id: "", status: "OFF" });
+  const [editForm, setEditForm] = useState({ name: "", type_id: null, room_id: "", status: "OFF" });
 
   // Fetch devices and rooms on component mount
   useEffect(() => {
@@ -36,23 +38,32 @@ export default function DeviceConfigPage() {
   async function fetchData() {
     try {
       setLoading(true);
-      const [devicesData, roomsData] = await Promise.all([
+      const [devicesData, roomsData, typesData] = await Promise.all([
         devicesService.getDevices(),
         roomsService.getRooms(),
+        typesService.getTypes(),
       ]);
       // Enrich devices with room names
       const enrichedDevices = devicesData.map((device) => {
         const room = roomsData.find((r) => r.id === device.room_id);
+        const typeObj = typesData.find((t) => t.id === device.type_id);
         return {
           ...device,
           room: room?.name || "Unknown Room",
+          type: typeObj?.name || device.type || "",
         };
       });
       setDevices(enrichedDevices);
       setRooms(roomsData);
-      // Set default room_id if rooms exist
+      setTypes(typesData);
+      // set default selections if data exist
       if (roomsData && roomsData.length > 0) {
         setForm((f) => ({ ...f, room_id: roomsData[0].id.toString() }));
+        setEditForm((f) => ({ ...f, room_id: roomsData[0].id.toString() }));
+      }
+      if (typesData && typesData.length > 0) {
+        setForm((f) => ({ ...f, type_id: typesData[0].id }));
+        setEditForm((f) => ({ ...f, type_id: typesData[0].id }));
       }
       setError(null);
     } catch (err) {
@@ -82,7 +93,7 @@ export default function DeviceConfigPage() {
       setEditingDevice(device);
       setEditForm({
         name: device.name,
-        type: device.type,
+        type_id: device.type_id,
         room_id: device.room_id.toString(),
         status: device.status,
       });
@@ -101,7 +112,7 @@ export default function DeviceConfigPage() {
     try {
       const updatedData = {
         name: editForm.name,
-        type: editForm.type,
+        type_id: editForm.type_id,
         room_id: parseInt(editForm.room_id),
         status: editForm.status,
       };
@@ -110,9 +121,11 @@ export default function DeviceConfigPage() {
       
       // Update devices list with room name
       const room = rooms.find((r) => r.id === parseInt(editForm.room_id));
+      const typeObj = types.find((t) => t.id === response.device.type_id);
       const updatedDevice = {
         ...response.device,
         room: room?.name || "Unknown Room",
+        type: typeObj?.name || response.device.type || "",
       };
       
       setDevices((d) =>
@@ -140,7 +153,7 @@ export default function DeviceConfigPage() {
     try {
       const newDevice = {
         name: form.name || `Device ${devices.length + 1}`,
-        type: form.type,
+        type_id: form.type_id,
         room_id: parseInt(form.room_id),
         status: form.status,
       };
@@ -151,13 +164,15 @@ export default function DeviceConfigPage() {
       
       // Enrich with room name
       const room = rooms.find((r) => r.id === parseInt(form.room_id));
+      const typeObj = types.find((t) => t.id === response.device.type_id);
       const enrichedDevice = {
         ...response.device,
         room: room?.name || "Unknown Room",
+        type: typeObj?.name || response.device.type || "",
       };
       
       setDevices((d) => [...d, enrichedDevice]);
-      setForm({ name: "", type: "LIGHT", room_id: rooms.length > 0 ? rooms[0].id.toString() : "", status: "OFF" });
+      setForm({ name: "", type_id: types.length > 0 ? types[0].id : null, room_id: rooms.length > 0 ? rooms[0].id.toString() : "", status: "OFF" });
       setOpen(false);
       setError(null);
       toast.success("Device created");
@@ -217,12 +232,17 @@ export default function DeviceConfigPage() {
                 </div>
                 <div>
                   <Label>Type</Label>
-                  <select className="mt-1 w-full rounded-md border px-3 py-2" value={form.type} onChange={(e) => setForm((f) => ({ ...f, type: e.target.value }))}>
-                    <option>LIGHT</option>
-                    <option>THERMOSTAT</option>
-                    <option>CAMERA</option>
-                    <option>OUTLET</option>
-                    <option>SENSOR</option>
+                  <select
+                    className="mt-1 w-full rounded-md border px-3 py-2"
+                    value={form.type_id || ""}
+                    onChange={(e) => setForm((f) => ({ ...f, type_id: parseInt(e.target.value) }))}
+                  >
+                    <option value="">Select a type</option>
+                    {types.map((t) => (
+                      <option key={t.id} value={t.id}>
+                        {t.name}
+                      </option>
+                    ))}
                   </select>
                 </div>
                 <div>
@@ -280,16 +300,17 @@ export default function DeviceConfigPage() {
             </div>
             <div>
               <Label>Type</Label>
-              <select 
-                className="mt-1 w-full rounded-md border px-3 py-2" 
-                value={editForm.type} 
-                onChange={(e) => setEditForm((f) => ({ ...f, type: e.target.value }))}
+              <select
+                className="mt-1 w-full rounded-md border px-3 py-2"
+                value={editForm.type_id || ""}
+                onChange={(e) => setEditForm((f) => ({ ...f, type_id: parseInt(e.target.value) }))}
               >
-                <option>LIGHT</option>
-                <option>THERMOSTAT</option>
-                <option>CAMERA</option>
-                <option>OUTLET</option>
-                <option>SENSOR</option>
+                <option value="">Select a type</option>
+                {types.map((t) => (
+                  <option key={t.id} value={t.id}>
+                    {t.name}
+                  </option>
+                ))}
               </select>
             </div>
             <div>
