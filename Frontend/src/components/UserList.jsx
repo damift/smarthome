@@ -23,7 +23,6 @@ export default function UserList({
             <th className="px-6 py-3 text-left">Name</th>
             <th className="px-6 py-3 text-left">Email</th>
             <th className="px-6 py-3 text-left">Role</th>
-            <th className="px-6 py-3 text-left">Status</th>
             {showActions && <th className="px-6 py-3 text-left">Actions</th>}
           </tr>
         </thead>
@@ -48,12 +47,6 @@ export default function UserList({
                     <option value="admin">Admin</option>
                     <option value="user">User</option>
                   </select>
-                </td>
-
-                <td className="px-6 py-4">
-                  <span className="inline-flex items-center gap-2 rounded-full border border-green-400 px-3 py-1 text-xs font-medium text-green-700">
-                    {u.status}
-                  </span>
                 </td>
 
                 {showActions && (
@@ -82,7 +75,7 @@ export default function UserList({
           {users.length === 0 && (
             <tr>
               <td
-                colSpan={showActions ? 5 : 4}
+                colSpan={showActions ? 4 : 3}
                 className="px-6 py-8 text-center text-sm text-zinc-500"
               >
                 Geen gebruikers gevonden
