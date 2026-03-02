@@ -3,91 +3,65 @@
 namespace Database\Seeders;
 
 use App\Models\Device;
-use App\Models\Rooms;
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
+use App\Models\Room;
+use App\Models\Type;
 use Illuminate\Database\Seeder;
 
 class DeviceSeeder extends Seeder
 {
-    /**
-     * Run the database seeds.
-     */
     public function run(): void
     {
-        // Get rooms by name
-        $livingRoom = Rooms::where('name', 'Living Room')->first();
-        $bedroom = Rooms::where('name', 'Bedroom')->first();
-        $kitchen = Rooms::where('name', 'Kitchen')->first();
+        // Haal de kamers op (Zorg dat de namen matchen met je RoomSeeder)
+        $livingRoom = Room::where('name', 'Living Room')->first();
+        $bedroom = Room::where('name', 'Bedroom')->first();
+        $kitchen = Room::where('name', 'Kitchen')->first();
 
-        if ($livingRoom) {
-            Device::create([
-                'name' => 'Main Ceiling Light',
-                'type' => 'LIGHT',
-                'room_id' => $livingRoom->id,
-                'status' => 'ON',
-                'icon' => '💡',
-            ]);
+        // Haal de types op (Exacte match met je TypeSeeder hoofdletters)
+        $light = Type::where('name', 'LIGHT')->first();
+        $thermostat = Type::where('name', 'THERMOSTAT')->first();
+        $camera = Type::where('name', 'CAMERA')->first();
+        $outlet = Type::where('name', 'OUTLET')->first();
 
-            Device::create([
-                'name' => 'Corner Lamp',
-                'type' => 'LIGHT',
-                'room_id' => $livingRoom->id,
-                'status' => 'OFF',
-                'icon' => '💡',
-            ]);
+        // Voorbeeld data array om de code korter en leesbaar te houden
+        $devices = [
+            // Living Room
+            ['name' => 'Main Ceiling Light', 'room' => $livingRoom, 'type' => $light],
+            ['name' => 'Corner Lamp', 'room' => $livingRoom, 'type' => $light],
+            ['name' => 'Living Room Thermostat', 'room' => $livingRoom, 'type' => $thermostat],
+            ['name' => 'Security Camera', 'room' => $livingRoom, 'type' => $camera],
 
-            Device::create([
-                'name' => 'Living Room Thermostat',
-                'type' => 'THERMOSTAT',
-                'room_id' => $livingRoom->id,
-                'status' => 'ON',
-                'icon' => '🌡️',
-            ]);
+            // Bedroom
+            ['name' => 'Bedroom Light', 'room' => $bedroom, 'type' => $light],
+            ['name' => 'Bedroom Thermostat', 'room' => $bedroom, 'type' => $thermostat],
 
-            Device::create([
-                'name' => 'Security Camera',
-                'type' => 'CAMERA',
-                'room_id' => $livingRoom->id,
-                'status' => 'ON',
-                'icon' => '📷',
-            ]);
-        }
+            // Kitchen
+            ['name' => 'Kitchen Light', 'room' => $kitchen, 'type' => $light],
+            ['name' => 'Smart Outlet', 'room' => $kitchen, 'type' => $outlet],
+        ];
 
-        if ($bedroom) {
-            Device::create([
-                'name' => 'Bedroom Light',
-                'type' => 'LIGHT',
-                'room_id' => $bedroom->id,
-                'status' => 'OFF',
-                'icon' => '💡',
-            ]);
+foreach ($devices as $item) {
+            if ($item['room'] && $item['type']) {
+                // 1. Maak het object aan in het geheugen (nog niet opslaan)
+                $device = new Device([
+                    'name' => $item['name'],
+                    'room_id' => $item['room']->id,
+                    'type_id' => $item['type']->id,
+                ]);
 
-            Device::create([
-                'name' => 'Bedroom Thermostat',
-                'type' => 'THERMOSTAT',
-                'room_id' => $bedroom->id,
-                'status' => 'ON',
-                'icon' => '🌡️',
-            ]);
-        }
+                // 2. Genereer de status handmatig via de methode in je Model
+                // Dit zorgt ervoor dat we niet afhankelijk zijn van "events" die soms niet vuren
+                $device->state = $device->generateDefaultState();
 
-        if ($kitchen) {
-            Device::create([
-                'name' => 'Kitchen Light',
-                'type' => 'LIGHT',
-                'room_id' => $kitchen->id,
-                'status' => 'ON',
-                'icon' => '💡',
-            ]);
-
-            Device::create([
-                'name' => 'Smart Outlet',
-                'type' => 'OUTLET',
-                'room_id' => $kitchen->id,
-                'status' => 'OFF',
-                'icon' => '🔌',
-            ]);
+                // 3. Opslaan of bijwerken
+                Device::updateOrCreate(
+                    ['name' => $item['name']],
+                    [
+                        'room_id' => $device->room_id,
+                        'type_id' => $device->type_id,
+                        'state'   => $device->state, // Nu geven we het expliciet mee!
+                    ]
+                );
+            }
         }
     }
 }
-

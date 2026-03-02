@@ -24,8 +24,20 @@ class DatabaseSeeder extends Seeder
 
         // Seed rooms
         $this->call(RoomSeeder::class);
+        
+        // Seed types
+        $this->call(TypeSeeder::class);
 
+
+
+        // Seed actions
+        $this->call(ActionSeeder::class);
+
+        // Seed type-action 
+        $this->call(TypeActionSeeder::class);
+        
         // Seed devices
         $this->call(DeviceSeeder::class);
+
     }
 }

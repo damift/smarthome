@@ -6,14 +6,15 @@ use App\Http\Controllers\TestController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoomsController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\TypeController;
 
 Route::post('/login',    [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
 
-    Route::get('/user', [AuthController::class, 'user']);
+Route::get('/user', [AuthController::class, 'user']);
+
 Route::middleware('auth:sanctum')
     ->delete('/users/{id}', [AuthController::class, 'deleteUser']);
-Route::get('/test', [TestController::class, 'hello']);
 
 Route::get('/rooms', [RoomsController::class, 'index']);
 
@@ -27,7 +28,9 @@ Route::prefix('devices')->group(function () {
     Route::post('/{id}/toggle', [DeviceController::class, 'toggleStatus']);
 });
 
+// Type API endpoints (clean RESTful)
+Route::apiResource('types', TypeController::class);
+
 // endpoint to update user role 
 Route::middleware('auth:sanctum')
     ->put('/users/{id}/role', [AuthController::class, 'updateRole']);
-
