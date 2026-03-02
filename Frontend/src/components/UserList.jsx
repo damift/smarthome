@@ -1,5 +1,6 @@
 import React from "react";
 import { Button } from "@/components/shadcn/button";
+import ChangePasswordDialog from "./ChangePasswordDialog";
 
 function normalizeRole(role) {
   const value = String(role ?? "user").trim().toLowerCase();
@@ -56,7 +57,14 @@ export default function UserList({
                 </td>
 
                 {showActions && (
-                  <td className="px-6 py-4">
+                  <td className="px-6 py-4 space-x-2 flex">
+                    <ChangePasswordDialog
+                      userId={u.id}
+                      userName={u.name}
+                      onPasswordChanged={() => {
+                        // Refresh user list if needed
+                      }}
+                    />
                     <Button
                       variant="destructive"
                       size="sm"

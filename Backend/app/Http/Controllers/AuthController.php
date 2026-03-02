@@ -126,4 +126,28 @@ public function updateRole(Request $request, $id)
         'user' => $user
     ]);
 }
+
+public function updatePassword(Request $request, $id)
+{
+    // Only admin can change other users' passwords
+    if ($request->user()->role !== 'admin') {
+        return response()->json([
+            'message' => 'Unauthorized'
+        ], 403);
+    }
+
+    $request->validate([
+        'password' => 'required|string|min:6'
+    ]);
+
+    $user = User::findOrFail($id);
+
+    $user->password = Hash::make($request->password);
+    $user->save();
+
+    return response()->json([
+        'message' => 'Password updated successfully',
+        'user' => $user
+    ]);
+}
 }

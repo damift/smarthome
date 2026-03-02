@@ -31,3 +31,7 @@ Route::prefix('devices')->group(function () {
 Route::middleware('auth:sanctum')
     ->put('/users/{id}/role', [AuthController::class, 'updateRole']);
 
+// endpoint to update user password
+Route::middleware('auth:sanctum')
+    ->put('/users/{id}/password', [AuthController::class, 'updatePassword']);
+
