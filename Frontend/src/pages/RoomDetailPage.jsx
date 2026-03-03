@@ -9,6 +9,7 @@ export default function RoomDetailPage() {
   const { roomId } = useParams();
   const [devices, setDevices] = useState([]);
   const [roomName, setRoomName] = useState("");
+  const [temperatureByDevice, setTemperatureByDevice] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toggling, setToggling] = useState({});
@@ -76,6 +77,22 @@ export default function RoomDetailPage() {
         });
 
         setDevices(roomDevices);
+        setTemperatureByDevice((prev) => {
+          const next = {};
+          roomDevices.forEach((device) => {
+            const stateTemp = Number(
+              device.state?.SET_TEMPERATURE ??
+                device.state?.temperature ??
+                device.state?.TEMP ??
+                device.state?.temp
+            );
+            const boundedTemp = Number.isFinite(stateTemp)
+              ? Math.max(10, Math.min(35, stateTemp))
+              : 22;
+            next[device.id] = prev[device.id] ?? boundedTemp;
+          });
+          return next;
+        });
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -83,30 +100,36 @@ export default function RoomDetailPage() {
         setLoading(false);
       }
     }
+
     fetchData();
   }, [roomId]);
 
   const handleToggleDevice = async (deviceId, currentStatus) => {
     try {
-      setToggling(prev => ({ ...prev, [deviceId]: true }));
+      setToggling((prev) => ({ ...prev, [deviceId]: true }));
       await devicesService.toggleDevice(deviceId);
-      
-      setDevices(prev =>
-        prev.map(d =>
-          d.id === deviceId
-            ? { ...d, status: currentStatus === "ON" ? "OFF" : "ON", active: !d.active }
-            : d
+
+      setDevices((prev) =>
+        prev.map((d) =>
+          d.id === deviceId ? { ...d, status: currentStatus === "ON" ? "OFF" : "ON", active: !d.active } : d
         )
       );
-      
-      const device = devices.find(d => d.id === deviceId);
+
+      const device = devices.find((d) => d.id === deviceId);
       const newStatus = currentStatus === "ON" ? "OFF" : "ON";
-      toast.success(`${device.name} turned ${newStatus}`);
+      toast.success(`${device?.name || "Device"} turned ${newStatus}`);
     } catch (err) {
       toast.error(`Failed to toggle device: ${err.message}`);
     } finally {
-      setToggling(prev => ({ ...prev, [deviceId]: false }));
+      setToggling((prev) => ({ ...prev, [deviceId]: false }));
     }
+  };
+
+  const handleTemperatureChange = (deviceId, value) => {
+    setTemperatureByDevice((prev) => ({
+      ...prev,
+      [deviceId]: Number(value),
+    }));
   };
 
   const deviceIcons = {
@@ -128,10 +151,7 @@ export default function RoomDetailPage() {
   if (error) {
     return (
       <div className="w-full min-h-screen bg-white p-6">
-        <Link
-          to="/dashboard"
-          className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-6"
-        >
+        <Link to="/dashboard" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-6">
           <ChevronLeft className="w-4 h-4" />
           Back to Dashboard
         </Link>
@@ -145,10 +165,7 @@ export default function RoomDetailPage() {
   return (
     <div className="w-full min-h-screen bg-white p-6">
       {/* Header */}
-      <Link
-        to="/dashboard"
-        className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-6 text-sm"
-      >
+      <Link to="/dashboard" className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-800 mb-6 text-sm">
         <ChevronLeft className="w-4 h-4" />
         Back to Dashboard
       </Link>
@@ -170,22 +187,20 @@ export default function RoomDetailPage() {
         <p className="text-zinc-500">No devices in this room</p>
       ) : (
         <div className="space-y-4">
-          {devices.map(device => {
+          {devices.map((device) => {
             const IconComponent = deviceIcons[device.type] || Radio;
             const isLoading = toggling[device.id];
+            const currentTemp = temperatureByDevice[device.id] ?? 22;
 
             return (
-              <div
-                key={device.id}
-                className="border border-zinc-300 rounded p-6 bg-white hover:shadow-sm transition-shadow"
-              >
+              <div key={device.id} className="border border-zinc-300 rounded p-6 bg-white hover:shadow-sm transition-shadow">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-start gap-4">
-                    <div className={`w-12 h-12 flex items-center justify-center rounded ${
-                      device.active
-                        ? "bg-black text-white"
-                        : "bg-zinc-100 text-zinc-500"
-                    }`}>
+                    <div
+                      className={`w-12 h-12 flex items-center justify-center rounded ${
+                        device.active ? "bg-black text-white" : "bg-zinc-100 text-zinc-500"
+                      }`}
+                    >
                       <IconComponent className="w-6 h-6" strokeWidth={2} />
                     </div>
                     <div>
@@ -193,11 +208,13 @@ export default function RoomDetailPage() {
                       <p className="text-sm text-zinc-500">{device.type}</p>
                     </div>
                   </div>
-                  <div className={`px-3 py-1 rounded text-sm font-medium border ${
-                    device.active
-                      ? "bg-green-50 text-green-700 border-green-300"
-                      : "bg-zinc-100 text-zinc-600 border-zinc-300"
-                  }`}>
+                  <div
+                    className={`px-3 py-1 rounded text-sm font-medium border ${
+                      device.active
+                        ? "bg-green-50 text-green-700 border-green-300"
+                        : "bg-zinc-100 text-zinc-600 border-zinc-300"
+                    }`}
+                  >
                     {device.status}
                   </div>
                 </div>
@@ -209,9 +226,7 @@ export default function RoomDetailPage() {
                       onClick={() => handleToggleDevice(device.id, device.status)}
                       disabled={isLoading}
                       className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        device.active
-                          ? "bg-black"
-                          : "bg-zinc-300"
+                        device.active ? "bg-black" : "bg-zinc-300"
                       } ${isLoading ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
                     >
                       <span
@@ -240,12 +255,24 @@ export default function RoomDetailPage() {
                     </div>
                   )}
 
-                  {/* Temperature display for thermostats */}
+                  {/* Temperature slider for thermostats */}
                   {device.type === "THERMOSTAT" && (
                     <div className="mt-4 pt-4 border-t border-zinc-200">
-                      <div className="flex justify-between items-center">
+                      <div className="flex justify-between items-center mb-2">
                         <span className="text-sm text-zinc-700">Temperature</span>
-                        <span className="text-sm font-semibold text-black">22°C</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="10"
+                          max="35"
+                          step="1"
+                          value={currentTemp}
+                          onChange={(e) => handleTemperatureChange(device.id, e.target.value)}
+                          className="flex-1 h-2 bg-zinc-300 rounded-lg appearance-none cursor-pointer"
+                          disabled={!device.active}
+                        />
+                        <span className="text-sm font-semibold text-black w-14 text-right">{currentTemp}°C</span>
                       </div>
                     </div>
                   )}
