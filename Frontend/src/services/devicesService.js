@@ -112,6 +112,30 @@ export const devicesService = {
     }
   },
 
+  async executeDeviceAction(id, actionId, value) {
+    try {
+      const response = await fetch(`${API_BASE_URL}/devices/${id}/execute`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action_id: actionId,
+          value,
+        }),
+      });
+
+      const data = await response.json().catch(() => ({}));
+
+      if (!response.ok) {
+        throw new Error(data.error || data.message || `Failed to execute action: ${response.statusText}`);
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error executing device action:", error);
+      throw error;
+    }
+  },
+
   async toggleDevice(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/devices/${id}/toggle`, {
