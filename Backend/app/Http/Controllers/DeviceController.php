@@ -130,19 +130,22 @@ public function index()
         ], 422);
     }
 
-    return DB::transaction(function () use ($device, $action, $validated) {
+return DB::transaction(function () use ($device, $action, $validated) {
 
-        $status = (array) $device->status; // Always force array
-        $status[strtolower($action->name)] = $validated['value'];
+    $state = (array) $device->state; // Always force array
 
-        $device->update(['status' => $status]);
+    // Update the specific action key
+    $state[$action->name] = $validated['value'];
 
-        return response()->json([
-            'message' => 'Actie succesvol uitgevoerd',
-            'device_name' => $device->name,
-            'new_status' => $status
-        ]);
-    });
+    // Save to the correct column
+    $device->update(['state' => $state]);
+
+    return response()->json([
+        'message' => 'Actie succesvol uitgevoerd',
+        'device_name' => $device->name,
+        'new_status' => $state
+    ]);
+});
 }
 
 }
