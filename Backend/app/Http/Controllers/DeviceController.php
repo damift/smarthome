@@ -5,6 +5,8 @@ namespace App\Http\Controllers;
 use App\Models\Device;
 use App\Models\Type;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
+use App\Models\Action;
 
 class DeviceController extends Controller
 {
@@ -29,7 +31,6 @@ class DeviceController extends Controller
             'type_id' => 'required|exists:types,id',
             'room_id' => 'required|exists:rooms,id',
             'status' => 'required|string|in:ON,OFF',
-            'icon' => 'nullable|string|max:10',
         ]);
 
         $device = Device::create([
@@ -37,7 +38,6 @@ class DeviceController extends Controller
             'type_id' => $request->type_id,
             'room_id' => $request->room_id,
             'status' => $request->status,
-            'icon' => $request->icon ?? $this->getDefaultIcon(Type::find($request->type_id)?->name ?? ''),
         ]);
 
         // load relation and convert to string for response
@@ -78,10 +78,9 @@ class DeviceController extends Controller
             'type_id' => 'sometimes|required|exists:types,id',
             'room_id' => 'sometimes|required|exists:rooms,id',
             'status' => 'sometimes|required|string|in:ON,OFF',
-            'icon' => 'nullable|string|max:10',
         ]);
 
-        $device->update($request->only(['name', 'type_id', 'room_id', 'status', 'icon']));
+        $device->update($request->only(['name', 'type_id', 'room_id', 'status', ]));
 
         // reload relationship
         $device->load('type');
@@ -108,36 +107,40 @@ class DeviceController extends Controller
         ]);
     }
 
-    public function toggleStatus($id)
-    {
-        $device = Device::find($id);
+    
+   public function execute(Request $request, Device $device)
+{
+    $validated = $request->validate([
+        'action_id' => 'required|exists:actions,id',
+        'value'     => 'required',
+    ]);
 
-        if (!$device) {
-            return response()->json(['message' => 'Device not found'], 404);
-        }
+    $action = Action::findOrFail($validated['action_id']);
 
-        $device->status = $device->status === 'ON' ? 'OFF' : 'ON';
-        $device->save();
+    $isValidAction = DB::table('type_action')
+        ->where('type_id', $device->type_id)
+        ->where('action_id', $action->id)
+        ->exists();
 
-        // include type name in response
-        $device->load('type');
-        $device->type = $device->type?->name;
+    if (!$isValidAction) {
+        return response()->json([
+            'error' => 'Deze actie is niet mogelijk voor dit type apparaat'
+        ], 422);
+    }
+
+    return DB::transaction(function () use ($device, $action, $validated) {
+
+        $status = (array) $device->status; // Always force array
+        $status[strtolower($action->name)] = $validated['value'];
+
+        $device->update(['status' => $status]);
 
         return response()->json([
-            'message' => 'Device status updated',
-            'device' => $device
+            'message' => 'Actie succesvol uitgevoerd',
+            'device_name' => $device->name,
+            'new_status' => $status
         ]);
-    }
+    });
+}
 
-    private function getDefaultIcon($type)
-    {
-        return match($type) {
-            'LIGHT' => '💡',
-            'THERMOSTAT' => '🌡️',
-            'CAMERA' => '📷',
-            'OUTLET' => '🔌',
-            'SENSOR' => '📡',
-            default => '🔌'
-        };
-    }
 }
