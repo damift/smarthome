@@ -13,9 +13,9 @@ class Type extends Model
         return $this->hasMany(Device::class);
     }
 
-    public function actions()
-    {
-        return $this->belongsToMany(Action::class, 'action');
-    }
+public function actions()
+{
+    return $this->belongsToMany(Action::class, 'type_action');
+}
 
 }

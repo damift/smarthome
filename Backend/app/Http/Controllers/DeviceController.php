@@ -10,20 +10,22 @@ use App\Models\Action;
 
 class DeviceController extends Controller
 {
-    public function index(Request $request)
-    {
-        // include related type and room so frontend can display names
-        $devices = Device::with(['type', 'room'])->get();
+public function index()
+{
+    $devices = Device::with(['type.actions', 'room'])->get();
 
-        // convert relationship objects into simple strings for compatibility
-        $devices->each(function ($d) {
-            $d->type = $d->type?->name;
-            $d->room = $d->room?->name;
-        });
+    $devices->each(function ($device) {
 
-        return response()->json($devices);
-    }
+        // Add actions directly on device
+        $device->actions = $device->type?->actions ?? [];
 
+        // Convert relations to simple values
+        $device->type = $device->type?->name;
+        $device->room = $device->room?->name;
+    });
+
+    return response()->json($devices);
+}
     public function store(Request $request)
     {
         $request->validate([
