@@ -1,5 +1,5 @@
 import { useParams, Link } from "react-router-dom";
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { ChevronLeft, Lightbulb, Thermometer, Lock, Camera, Radio } from "lucide-react";
 import { devicesService } from "@/services/devicesService";
 import { roomsService } from "@/services/roomsService";
@@ -14,6 +14,7 @@ export default function RoomDetailPage() {
   const [error, setError] = useState(null);
   const [toggling, setToggling] = useState({});
   const [savingTemperature, setSavingTemperature] = useState({});
+  const temperatureCommitTimersRef = useRef({});
 
   useEffect(() => {
     async function fetchData() {
@@ -109,6 +110,13 @@ export default function RoomDetailPage() {
     fetchData();
   }, [roomId]);
 
+  useEffect(() => {
+    const timers = temperatureCommitTimersRef.current;
+    return () => {
+      Object.values(timers).forEach((timerId) => clearTimeout(timerId));
+    };
+  }, []);
+
   const getActionId = (device, actionName) => {
     const action = (device.actions || []).find(
       (item) => String(item?.name || "").toUpperCase() === String(actionName).toUpperCase()
@@ -121,17 +129,28 @@ export default function RoomDetailPage() {
     if (!device) return;
 
     const newStatus = currentStatus === "ON" ? "OFF" : "ON";
-    const actionName = newStatus === "ON" ? "TURN_ON" : "TURN_OFF";
-    const actionId = getActionId(device, actionName);
+    const turnOnActionId = getActionId(device, "TURN_ON");
+    const turnOffActionId = getActionId(device, "TURN_OFF");
+    const actionPayload =
+      newStatus === "ON"
+        ? turnOnActionId
+          ? { actionId: turnOnActionId, value: true }
+          : turnOffActionId
+          ? { actionId: turnOffActionId, value: false }
+          : null
+        : turnOffActionId
+        ? { actionId: turnOffActionId, value: true }
+        : turnOnActionId
+        ? { actionId: turnOnActionId, value: false }
+        : null;
 
     try {
       setToggling((prev) => ({ ...prev, [deviceId]: true }));
 
-      if (actionId) {
-        await devicesService.executeDeviceAction(deviceId, actionId, true);
-      } else {
-        await devicesService.toggleDevice(deviceId);
+      if (!actionPayload) {
+        throw new Error("No valid power action configured for this device");
       }
+      await devicesService.executeDeviceAction(deviceId, actionPayload.actionId, actionPayload.value);
 
       setDevices((prev) =>
         prev.map((d) =>
@@ -159,20 +178,34 @@ export default function RoomDetailPage() {
   };
 
   const handleTemperatureChange = (deviceId, value) => {
+    const nextValue = Number(value);
+
     setTemperatureByDevice((prev) => ({
       ...prev,
-      [deviceId]: Number(value),
+      [deviceId]: nextValue,
     }));
+
+    const existingTimer = temperatureCommitTimersRef.current[deviceId];
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    temperatureCommitTimersRef.current[deviceId] = setTimeout(() => {
+      commitTemperature(deviceId, nextValue);
+    }, 250);
   };
 
-  const commitTemperature = async (deviceId) => {
+  const commitTemperature = async (deviceId, explicitValue = null) => {
     const device = devices.find((d) => d.id === deviceId);
     if (!device) return;
 
     const actionId = getActionId(device, "SET_TEMPERATURE");
-    if (!actionId) return;
+    if (!actionId) {
+      toast.error("SET_TEMPERATURE action ontbreekt voor dit device");
+      return;
+    }
 
-    const currentTemp = Number(temperatureByDevice[deviceId] ?? 22);
+    const currentTemp = Number(explicitValue ?? temperatureByDevice[deviceId] ?? 22);
 
     try {
       setSavingTemperature((prev) => ({ ...prev, [deviceId]: true }));
@@ -331,11 +364,9 @@ export default function RoomDetailPage() {
                           step="1"
                           value={currentTemp}
                           onChange={(e) => handleTemperatureChange(device.id, e.target.value)}
-                          onMouseUp={() => commitTemperature(device.id)}
-                          onTouchEnd={() => commitTemperature(device.id)}
                           onBlur={() => commitTemperature(device.id)}
                           className="flex-1 h-2 bg-zinc-300 rounded-lg appearance-none cursor-pointer"
-                          disabled={!device.active || isSavingTemp}
+                          disabled={isSavingTemp}
                         />
                         <span className="text-sm font-semibold text-black w-14 text-right">
                           {currentTemp}&deg;C
