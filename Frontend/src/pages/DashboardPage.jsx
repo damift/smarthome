@@ -19,56 +19,56 @@ export default function DashboardPage() {
           devicesService.getDevices(),
         ]);
 
-        // Normalize devices and group by room id or room name
+        const roomList = Array.isArray(roomsData) ? roomsData : roomsData?.data || [];
+        const deviceList = Array.isArray(devicesData) ? devicesData : devicesData?.data || [];
+
+        const normalizeDevice = (device) => {
+          const status = typeof device.status === "string" ? device.status.toUpperCase() : null;
+          const activeFromStatus = status ? status === "ON" : null;
+          const activeFromState =
+            typeof device.state === "object" && device.state !== null
+              ? Boolean(device.state.TURN_ON)
+              : null;
+
+          return {
+            ...device,
+            active:
+              typeof device.active === "boolean"
+                ? device.active
+                : activeFromStatus !== null
+                ? activeFromStatus
+                : activeFromState !== null
+                ? activeFromState
+                : false,
+          };
+        };
+
+        // Group devices by both id and name fallback.
         const devicesByRoomId = {};
         const devicesByRoomName = {};
 
-        (devicesData || []).forEach((d) => {
-          // normalize type and active status from backend
-          const rawType = (d.type || d.device_type || "").toString();
-          const typeMap = {
-            light: "lightbulb",
-            lights: "lightbulb",
-            lightbulb: "lightbulb",
-            lamp: "lightbulb",
-            thermostat: "thermostat",
-            thermostat_device: "thermostat",
-            camera: "camera",
-            cam: "camera",
-            lock: "lock",
-            doorlock: "lock",
-            motion: "motion",
-            sensor: "motion",
-            unknown: "unknown",
-            LIGHT: "lightbulb",
-            THERMOSTAT: "thermostat",
-            CAMERA: "camera",
-            LOCK: "lock",
-            MOTION: "motion",
-          };
+        deviceList.map(normalizeDevice).forEach((device) => {
+          const roomId = device.room_id ?? device.room?.id ?? null;
+          const roomName = device.room?.name ?? device.room_name ?? null;
 
-          const mappedType = typeMap[rawType] || typeMap[rawType.toUpperCase?.() ] || "unknown";
+          if (roomId !== null && roomId !== undefined) {
+            const key = String(roomId);
+            devicesByRoomId[key] = devicesByRoomId[key] || [];
+            devicesByRoomId[key].push(device);
+          }
 
-          const dev = {
-            id: d.id,
-            name: d.name || d.display_name || d.type || `Device ${d.id}`,
-            type: mappedType,
-            active: (typeof d.status === "string" ? d.status.toLowerCase() === "on" : !!d.active),
-            icon: d.icon || null,
-          };
-
-          // Group by room_id (new system) or room name (fallback)
-          if (d.room_id) {
-            devicesByRoomId[d.room_id] = devicesByRoomId[d.room_id] || [];
-            devicesByRoomId[d.room_id].push(dev);
-          } else if (d.room) {
-            devicesByRoomName[d.room] = devicesByRoomName[d.room] || [];
-            devicesByRoomName[d.room].push(dev);
+          if (roomName) {
+            const key = String(roomName).toLowerCase();
+            devicesByRoomName[key] = devicesByRoomName[key] || [];
+            devicesByRoomName[key].push(device);
           }
         });
 
-        const merged = (roomsData || []).map((r) => {
-          const roomDevices = devicesByRoomId[r.id] || devicesByRoomName[r.name] || [];
+       
+        const merged = roomList.map((r) => {
+          const roomIdKey = String(r.id);
+          const roomNameKey = String(r.name || "").toLowerCase();
+          const roomDevices = devicesByRoomId[roomIdKey] || devicesByRoomName[roomNameKey] || [];
           const deviceCount = roomDevices.length;
           const activeDevices = roomDevices.filter((d) => d.active).length;
           return {

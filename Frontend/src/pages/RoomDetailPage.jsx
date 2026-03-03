@@ -2,11 +2,13 @@ import { useParams, Link } from "react-router-dom";
 import { useState, useEffect } from "react";
 import { ChevronLeft, Lightbulb, Thermometer, Lock, Camera, Radio } from "lucide-react";
 import { devicesService } from "@/services/devicesService";
+import { roomsService } from "@/services/roomsService";
 import { toast } from "sonner";
 
 export default function RoomDetailPage() {
   const { roomId } = useParams();
   const [devices, setDevices] = useState([]);
+  const [roomName, setRoomName] = useState("");
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toggling, setToggling] = useState({});
@@ -15,61 +17,67 @@ export default function RoomDetailPage() {
     async function fetchData() {
       try {
         setLoading(true);
-        const allDevices = await devicesService.getDevices();
-        console.log("All devices from API:", allDevices);
-        
-        // Normalize devices (same as Dashboard)
-        const typeMap = {
-          light: "lightbulb",
-          lights: "lightbulb",
-          lightbulb: "lightbulb",
-          lamp: "lightbulb",
-          thermostat: "thermostat",
-          thermostat_device: "thermostat",
-          camera: "camera",
-          cam: "camera",
-          lock: "lock",
-          doorlock: "lock",
-          motion: "motion",
-          sensor: "motion",
-          unknown: "unknown",
-          LIGHT: "lightbulb",
-          THERMOSTAT: "thermostat",
-          CAMERA: "camera",
-          LOCK: "lock",
-          MOTION: "motion",
+        const [roomsData, allDevices] = await Promise.all([
+          roomsService.getRooms(),
+          devicesService.getDevices(),
+        ]);
+
+        const roomList = Array.isArray(roomsData) ? roomsData : roomsData?.data || [];
+        const deviceList = Array.isArray(allDevices) ? allDevices : allDevices?.data || [];
+
+        const roomParam = decodeURIComponent(roomId || "").trim();
+        const roomParamLower = roomParam.toLowerCase();
+        const roomByRoute =
+          roomList.find((room) => String(room.id) === roomParam) ||
+          roomList.find((room) => String(room.name || "").toLowerCase() === roomParamLower);
+
+        const targetRoomId = roomByRoute?.id ?? null;
+        const targetRoomName = roomByRoute?.name || roomParam;
+        setRoomName(targetRoomName);
+
+        const mapType = (rawType) => {
+          const value = String(rawType || "").toUpperCase();
+          if (value.includes("THERMOSTAT")) return "THERMOSTAT";
+          if (value.includes("LIGHT") || value.includes("LAMP")) return "LIGHT";
+          if (value.includes("LOCK")) return "LOCK";
+          if (value.includes("CAMERA") || value.includes("CAM")) return "CAMERA";
+          return "SENSOR";
         };
 
-        const normalizedDevices = (allDevices || []).map(d => {
-          const rawType = (d.type || d.device_type || "").toString();
-          const mappedType = typeMap[rawType] || typeMap[rawType.toUpperCase?.()] || "unknown";
-          
+        const normalizedDevices = deviceList.map((device) => {
+          const typeName = device.type?.name || device.type || device.device_type;
+          const roomIdFromDevice = device.room_id ?? device.room?.id ?? null;
+          const roomNameFromDevice = device.room?.name ?? device.room_name ?? "";
+          const status =
+            typeof device.status === "string"
+              ? device.status.toUpperCase()
+              : device.active || device.state?.TURN_ON
+              ? "ON"
+              : "OFF";
+
           return {
-            id: d.id,
-            name: d.name || d.display_name || d.type || `Device ${d.id}`,
-            type: mappedType,
-            status: d.status || (d.active ? "ON" : "OFF"),
-            active: (typeof d.status === "string" ? d.status.toLowerCase() === "on" : !!d.active),
-            icon: d.icon || null,
-            room: d.room || d.room_name || "",
+            id: device.id,
+            name: device.name || device.display_name || `Device ${device.id}`,
+            type: mapType(typeName),
+            status,
+            active: status === "ON",
+            icon: device.icon || null,
+            roomId: roomIdFromDevice,
+            roomName: roomNameFromDevice,
+            state: device.state || null,
           };
         });
 
-        console.log("Normalized devices:", normalizedDevices);
-        const roomNameDecoded = decodeURIComponent(roomId);
-        console.log("Looking for room:", roomNameDecoded);
-        
-        // Filter devices by room name
-        const roomDevices = normalizedDevices.filter(d => {
-          console.log(`Checking device "${d.name}" with room="${d.room}" against "${roomNameDecoded}"`);
-          return d.room === roomNameDecoded;
+        const roomDevices = normalizedDevices.filter((device) => {
+          if (targetRoomId !== null && targetRoomId !== undefined) {
+            return String(device.roomId) === String(targetRoomId);
+          }
+          return String(device.roomName || "").toLowerCase() === roomParamLower;
         });
-        
-        console.log("Filtered room devices:", roomDevices);
+
         setDevices(roomDevices);
         setError(null);
       } catch (err) {
-        console.error("Error fetching data:", err);
         setError(err.message);
       } finally {
         setLoading(false);
@@ -132,8 +140,7 @@ export default function RoomDetailPage() {
     );
   }
 
-  const activeCount = devices.filter(d => d.active).length;
-  const roomName = decodeURIComponent(roomId);
+  const activeCount = devices.filter((d) => d.active).length;
 
   return (
     <div className="w-full min-h-screen bg-white p-6">
