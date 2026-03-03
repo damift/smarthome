@@ -20,7 +20,7 @@ class DatabaseSeeder extends Seeder
         User::factory()->create([
             'name' => 'Test User',
             'email' => 'test@gmail.com',
-            // default password for seeder
+            'role' => 'admin',
             'password' => \Illuminate\Support\Facades\Hash::make('123456789'),
         ]);
 
