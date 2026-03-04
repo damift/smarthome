@@ -17,9 +17,9 @@ export default function AppLayout() {
   }
 
   return (
-    <div className="w-screen min-h-screen">
+    <div className="w-full min-h-screen">
       {/* Top bar */}
-      <header className="border-b border-zinc-300 bg-white">
+      <header className="p-4 border-b border-zinc-300 bg-white">
         <div className="mx-auto max-w-full px-6 py-4 flex items-center justify-between">
           <div className="text-lg font-bold text-zinc-900">
             Smart Home
