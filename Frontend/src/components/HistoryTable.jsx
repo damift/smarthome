@@ -1,12 +1,38 @@
 import React from "react";
 
 function formatTime(ts) {
+  if (!ts) return "-";
+
   try {
     const d = new Date(ts);
+    if (Number.isNaN(d.getTime())) return String(ts);
     return d.toLocaleString();
   } catch {
     return ts;
   }
+}
+
+function formatCell(value) {
+  if (value === null || value === undefined || value === "") return "-";
+
+  if (typeof value === "string" || typeof value === "number" || typeof value === "boolean") {
+    return String(value);
+  }
+
+  if (typeof value === "object") {
+    if (value.name) return String(value.name);
+    if (value.label) return String(value.label);
+    if (value.title) return String(value.title);
+    if (value.email) return String(value.email);
+    if (value.id !== undefined && value.id !== null) return String(value.id);
+    try {
+      return JSON.stringify(value);
+    } catch {
+      return "-";
+    }
+  }
+
+  return "-";
 }
 
 export default function HistoryTable({ items = [] }) {
@@ -24,14 +50,14 @@ export default function HistoryTable({ items = [] }) {
           </tr>
         </thead>
         <tbody>
-          {items.map((it) => (
-            <tr key={it.id} className="border-t">
+          {items.map((it, index) => (
+            <tr key={it.id ?? index} className="border-t">
               <td className="px-4 py-3 align-top">{formatTime(it.timestamp)}</td>
-              <td className="px-4 py-3 align-top">{it.user}</td>
-              <td className="px-4 py-3 align-top">{it.room}</td>
-              <td className="px-4 py-3 align-top">{it.device}</td>
+              <td className="px-4 py-3 align-top">{formatCell(it.user)}</td>
+              <td className="px-4 py-3 align-top">{formatCell(it.room)}</td>
+              <td className="px-4 py-3 align-top">{formatCell(it.device)}</td>
               <td className="px-4 py-3 align-top">
-                <div className="inline-block px-3 py-1 border rounded text-xs">{it.action}</div>
+                <div className="inline-block px-3 py-1 border rounded text-xs">{formatCell(it.action)}</div>
               </td>
             </tr>
           ))}

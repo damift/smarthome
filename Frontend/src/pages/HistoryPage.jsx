@@ -34,6 +34,8 @@ export default function HistoryPage() {
       <div>
         <h1 className="text-2xl font-semibold">History</h1>
         <p className="text-zinc-400">Overview of recent activity and events</p>
+        <ExportButtons items={items} filenamePrefix="history-export" />
+
       </div>
 
       {loading && (
@@ -54,13 +56,7 @@ export default function HistoryPage() {
       {!loading && !error && (
         <div className="flex flex-col gap-4">
           {/* Filters en export werken op dezelfde items-collectie. */}
-          <div className="flex items-center justify-between gap-4">
-            <div className="flex-1">
-              <HistoryFilters />
-            </div>
-            <div>
-              <ExportButtons items={items} filenamePrefix="history-export" />
-            </div>
+          <div className="flex items-right justify-between gap-4">
           </div>
 
           <HistoryTable items={items} />

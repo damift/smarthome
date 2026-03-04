@@ -134,16 +134,38 @@ public function execute(Request $request, Device $device)
 
     return DB::transaction(function () use ($device, $action, $validated, $request) {
         $state = (array) $device->state;
-        $state[$action->name] = $validated['value'];
+        $actionName = strtoupper((string) $action->name);
+        $value = $validated['value'];
+
+        // Houd TURN_ON/TURN_OFF in sync zodat er 1 consistente power-state is.
+        if ($actionName === 'TURN_ON' || $actionName === 'TURN_OFF') {
+            $boolValue = filter_var($value, FILTER_VALIDATE_BOOLEAN, FILTER_NULL_ON_FAILURE);
+            if ($boolValue !== null) {
+                $value = $boolValue;
+            }
+        }
+
+        $state[$action->name] = $value;
+
+        if ($actionName === 'TURN_ON' && $value === true) {
+            $state['TURN_OFF'] = false;
+        } elseif ($actionName === 'TURN_ON' && $value === false) {
+            $state['TURN_OFF'] = true;
+        } elseif ($actionName === 'TURN_OFF' && $value === true) {
+            $state['TURN_ON'] = false;
+        } elseif ($actionName === 'TURN_OFF' && $value === false) {
+            $state['TURN_ON'] = true;
+        }
+
         $device->update(['state' => $state]);
 
         // 👇 Log the action
         History::create([
-'user_id' => $request->user()?->id,
+            'user_id' => $request->user()?->id,
             'room_id'   => $device->room_id,
             'device_id' => $device->id,
             'action_id' => $action->id,
-            'value'     => $validated['value'],
+            'value'     => $value,
         ]);
 
         return response()->json([
@@ -156,4 +178,3 @@ public function execute(Request $request, Device $device)
     });
 }
 }
-

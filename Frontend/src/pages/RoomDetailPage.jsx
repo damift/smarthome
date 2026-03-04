@@ -26,6 +26,14 @@ function isStringAction(action) {
   return getValueType(action) === "STRING";
 }
 
+function getActionName(action) {
+  return String(action?.name || "").toUpperCase();
+}
+
+function isPowerAction(action) {
+  return POWER_ACTIONS.has(getActionName(action));
+}
+
 // Zet action keys zoals SET_TEMPERATURE om naar leesbare labels.
 function formatActionLabel(name) {
   return String(name || "")
@@ -198,6 +206,26 @@ export default function RoomDetailPage() {
     );
   };
 
+  const applyLocalPowerState = (deviceId, nextActive) => {
+    // Houd TURN_ON en TURN_OFF lokaal in sync voor 1 duidelijke power-toggle.
+    setDevices((prev) =>
+      prev.map((device) => {
+        if (device.id !== deviceId) return device;
+
+        return {
+          ...device,
+          state: {
+            ...(device.state || {}),
+            TURN_ON: nextActive,
+            TURN_OFF: !nextActive,
+          },
+          active: nextActive,
+          status: nextActive ? "ON" : "OFF",
+        };
+      })
+    );
+  };
+
   const executeAction = async (deviceId, action, value) => {
     const actionKey = getActionKey(deviceId, action.id);
     try {
@@ -235,6 +263,30 @@ export default function RoomDetailPage() {
     const nextValue = !current;
     applyLocalActionValue(device.id, action.name, nextValue);
     flushActionCommit(device.id, action, nextValue);
+  };
+
+  const handlePowerToggle = (device, powerOnAction, powerOffAction) => {
+    const nextActive = !device.active;
+    applyLocalPowerState(device.id, nextActive);
+
+    if (nextActive) {
+      if (powerOnAction) {
+        flushActionCommit(device.id, powerOnAction, true);
+        return;
+      }
+      if (powerOffAction) {
+        flushActionCommit(device.id, powerOffAction, false);
+      }
+      return;
+    }
+
+    if (powerOffAction) {
+      flushActionCommit(device.id, powerOffAction, true);
+      return;
+    }
+    if (powerOnAction) {
+      flushActionCommit(device.id, powerOnAction, false);
+    }
   };
 
   const handleSliderActionChange = (device, action, rawValue) => {
@@ -301,7 +353,14 @@ export default function RoomDetailPage() {
         <div className="space-y-4">
           {devices.map((device) => {
             const IconComponent = deviceIcons[device.type] || Radio;
-            const hasPowerAction = (device.actions || []).some((action) => POWER_ACTIONS.has(String(action?.name || "").toUpperCase()));
+            const deviceActions = Array.isArray(device.actions) ? device.actions : [];
+            const powerOnAction = deviceActions.find((action) => getActionName(action) === "TURN_ON");
+            const powerOffAction = deviceActions.find((action) => getActionName(action) === "TURN_OFF");
+            const hasPowerAction = Boolean(powerOnAction || powerOffAction);
+            const isPowerSaving = [powerOnAction, powerOffAction]
+              .filter(Boolean)
+              .some((action) => !!savingActions[getActionKey(device.id, action.id)]);
+            const nonPowerActions = deviceActions.filter((action) => !isPowerAction(action));
 
             return (
               <div key={device.id} className="border border-zinc-300 rounded p-6 bg-white hover:shadow-sm transition-shadow">
@@ -333,12 +392,34 @@ export default function RoomDetailPage() {
                 </div>
 
                 <div className="border-t border-zinc-200 pt-4 space-y-4">
-                  {(device.actions || []).length === 0 && (
+                  {!hasPowerAction && nonPowerActions.length === 0 && (
                     <p className="text-sm text-zinc-500">No controls available for this device.</p>
                   )}
 
+                  {hasPowerAction && (
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <p className="text-sm text-zinc-700">Power</p>
+                        <p className="text-xs text-zinc-500">Zet het apparaat aan of uit</p>
+                      </div>
+                      <button
+                        onClick={() => handlePowerToggle(device, powerOnAction, powerOffAction)}
+                        disabled={isPowerSaving}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          device.active ? "bg-black" : "bg-zinc-300"
+                        } ${isPowerSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            device.active ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
+                    </div>
+                  )}
+
                   {/* Dynamische action-renderer op basis van value_type uit de database. */}
-                  {(device.actions || []).map((action) => {
+                  {nonPowerActions.map((action) => {
                     const actionKey = getActionKey(device.id, action.id);
                     const isSaving = !!savingActions[actionKey];
                     const currentValue = getCurrentActionValue(device, action);
