@@ -23,6 +23,7 @@ export default function DeviceConfigPage() {
   const [rooms, setRooms] = useState([]);
   const [types, setTypes] = useState([]);
   const [open, setOpen] = useState(false);
+  const [creating, setCreating] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editingDevice, setEditingDevice] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -153,6 +154,7 @@ export default function DeviceConfigPage() {
     }
 
     try {
+      setCreating(true);
       const newDevice = {
         name: form.name || `Device ${devices.length + 1}`,
         type_id: form.type_id,
@@ -182,6 +184,8 @@ export default function DeviceConfigPage() {
       console.error("Full error object:", err);
       setError(err.message || "Failed to create device");
       toast.error(err.message || "Failed to create device");
+    } finally {
+      setCreating(false);
     }
   }
 
@@ -267,7 +271,9 @@ export default function DeviceConfigPage() {
                   <DialogClose asChild>
                     <button type="button" className="mr-2 px-4 py-2 rounded-md border">Cancel</button>
                   </DialogClose>
-                  <button type="submit" className="px-4 py-2 rounded-md bg-zinc-900 text-white">Create</button>
+                  <button type="submit" disabled={creating} className="px-4 py-2 rounded-md bg-zinc-900 text-white disabled:opacity-60">
+                    {creating ? "Creating..." : "Create"}
+                  </button>
                 </DialogFooter>
               </form>
             </DialogContent>
