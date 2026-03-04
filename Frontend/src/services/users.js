@@ -96,9 +96,20 @@ export async function assignRole(id, role) {
   return handleResponse(res);
 }
 
+export async function updateUserPassword(id, password, password_confirmation) {
+  const res = await fetch(`${API_BASE}/api/users/${id}/password`, {
+    method: "POST",
+    headers: getAuthHeaders(true),
+    body: JSON.stringify({ password, password_confirmation }),
+  });
+
+  return handleResponse(res);
+}
+
 export default {
   getUsers,
   createUser,
   deleteUser,
   assignRole,
+  updateUserPassword,
 };

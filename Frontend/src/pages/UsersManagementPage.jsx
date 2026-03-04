@@ -18,6 +18,7 @@ import {
   createUser as apiCreateUser,
   deleteUser as apiDeleteUser,
   assignRole as apiAssignRole,
+  updateUserPassword as apiUpdateUserPassword,
 } from "@/services/users";
 import { toast } from "sonner";
 
@@ -59,8 +60,18 @@ export default function UsersManagementPage() {
 
   const [loadingUsers, setLoadingUsers] = React.useState(false);
   const [submitting, setSubmitting] = React.useState(false);
+  const [changingPasswordId, setChangingPasswordId] = React.useState(null);
   const [deletingId, setDeletingId] = React.useState(null);
   const [updatingRoleId, setUpdatingRoleId] = React.useState(null);
+  const [passwordDialogOpen, setPasswordDialogOpen] = React.useState(false);
+  const [passwordTargetUser, setPasswordTargetUser] = React.useState(null);
+  const [passwordForm, setPasswordForm] = React.useState({
+    password: "",
+    password_confirmation: "",
+  });
+  const [passwordFormErrors, setPasswordFormErrors] = React.useState({});
+  const [passwordSubmitError, setPasswordSubmitError] = React.useState(null);
+  const [passwordSubmitting, setPasswordSubmitting] = React.useState(false);
 
   const [formErrors, setFormErrors] = React.useState({});
   const [submitError, setSubmitError] = React.useState(null);
@@ -129,6 +140,78 @@ export default function UsersManagementPage() {
       toast.error(`Kon gebruiker niet verwijderen: ${err.message}`);
     } finally {
       setDeletingId(null);
+    }
+  }
+
+  function handleOpenPasswordDialog(user) {
+    setPasswordTargetUser(user);
+    setPasswordForm({ password: "", password_confirmation: "" });
+    setPasswordFormErrors({});
+    setPasswordSubmitError(null);
+    setPasswordDialogOpen(true);
+  }
+
+  function validatePasswordForm() {
+    const errors = {};
+
+    if (!passwordForm.password) {
+      errors.password = "Password is required";
+    } else if (passwordForm.password.length < 6) {
+      errors.password = "Password must be at least 6 characters";
+    }
+
+    if (!passwordForm.password_confirmation) {
+      errors.password_confirmation = "Confirm password is required";
+    } else if (passwordForm.password !== passwordForm.password_confirmation) {
+      errors.password_confirmation = "Passwords do not match";
+    }
+
+    setPasswordFormErrors(errors);
+    return Object.keys(errors).length === 0;
+  }
+
+  async function handlePasswordSubmit(e) {
+    e.preventDefault();
+    setPasswordSubmitError(null);
+
+    if (!passwordTargetUser) return;
+    if (!validatePasswordForm()) return;
+
+    try {
+      setPasswordSubmitting(true);
+      setChangingPasswordId(passwordTargetUser.id);
+
+      await apiUpdateUserPassword(
+        passwordTargetUser.id,
+        passwordForm.password,
+        passwordForm.password_confirmation
+      );
+
+      setPasswordDialogOpen(false);
+      setPasswordTargetUser(null);
+      setPasswordForm({ password: "", password_confirmation: "" });
+      setPasswordFormErrors({});
+      setPasswordSubmitError(null);
+
+      toast.success("Wachtwoord gewijzigd");
+    } catch (err) {
+      console.error("Password update failed:", err);
+
+      if (err?.data?.errors && typeof err.data.errors === "object") {
+        const fieldErrors = {};
+        for (const [field, messages] of Object.entries(err.data.errors)) {
+          fieldErrors[field] = Array.isArray(messages) ? messages[0] : String(messages);
+        }
+        setPasswordFormErrors(fieldErrors);
+        setPasswordSubmitError("Please check the errors below");
+      } else {
+        setPasswordSubmitError(err.message || "An unexpected error occurred");
+      }
+
+      toast.error(err.message || "An unexpected error occurred");
+    } finally {
+      setPasswordSubmitting(false);
+      setChangingPasswordId(null);
     }
   }
 
@@ -407,11 +490,116 @@ export default function UsersManagementPage() {
           users={users}
           onRoleChange={handleRoleChange}
           onRemove={handleRemove}
+          onChangePassword={handleOpenPasswordDialog}
           showActions={true}
           deletingId={deletingId}
           updatingRoleId={updatingRoleId}
+          changingPasswordId={changingPasswordId}
         />
       )}
+
+      <Dialog open={passwordDialogOpen} onOpenChange={setPasswordDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Change Password</DialogTitle>
+            <DialogDescription>
+              {passwordTargetUser
+                ? `Set a new password for ${passwordTargetUser.name || passwordTargetUser.email}.`
+                : "Set a new password for this user."}
+            </DialogDescription>
+          </DialogHeader>
+
+          {passwordSubmitError && (
+            <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+              {passwordSubmitError}
+            </div>
+          )}
+
+          <form onSubmit={handlePasswordSubmit} className="space-y-4">
+            <div>
+              <Label
+                htmlFor="edit_password"
+                className={passwordFormErrors.password ? "text-red-600" : ""}
+              >
+                New password
+              </Label>
+              <Input
+                id="edit_password"
+                type="password"
+                value={passwordForm.password}
+                onChange={(e) => {
+                  setPasswordForm((f) => ({ ...f, password: e.target.value }));
+                  if (passwordFormErrors.password) {
+                    setPasswordFormErrors((err) => ({ ...err, password: "" }));
+                  }
+                }}
+                placeholder="Enter new password"
+                className={passwordFormErrors.password ? "border-red-500 focus:border-red-500" : ""}
+              />
+              {passwordFormErrors.password && (
+                <p className="mt-1 text-xs text-red-600">{passwordFormErrors.password}</p>
+              )}
+            </div>
+
+            <div>
+              <Label
+                htmlFor="edit_password_confirmation"
+                className={passwordFormErrors.password_confirmation ? "text-red-600" : ""}
+              >
+                Confirm password
+              </Label>
+              <Input
+                id="edit_password_confirmation"
+                type="password"
+                value={passwordForm.password_confirmation}
+                onChange={(e) => {
+                  setPasswordForm((f) => ({
+                    ...f,
+                    password_confirmation: e.target.value,
+                  }));
+                  if (passwordFormErrors.password_confirmation) {
+                    setPasswordFormErrors((err) => ({
+                      ...err,
+                      password_confirmation: "",
+                    }));
+                  }
+                }}
+                placeholder="Confirm new password"
+                className={
+                  passwordFormErrors.password_confirmation
+                    ? "border-red-500 focus:border-red-500"
+                    : ""
+                }
+              />
+              {passwordFormErrors.password_confirmation && (
+                <p className="mt-1 text-xs text-red-600">
+                  {passwordFormErrors.password_confirmation}
+                </p>
+              )}
+            </div>
+
+            <DialogFooter className="pt-2">
+              <DialogClose asChild>
+                <button
+                  type="button"
+                  className="mr-2 rounded-md border px-4 py-2"
+                  disabled={passwordSubmitting}
+                >
+                  Cancel
+                </button>
+              </DialogClose>
+
+              <button
+                type="submit"
+                disabled={passwordSubmitting}
+                className="rounded-md bg-zinc-900 px-4 py-2 text-white disabled:opacity-50"
+              >
+                {passwordSubmitting ? "Saving..." : "Save"}
+              </button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       <div className="text-sm text-zinc-500">Total: {users.length} users</div>
     </div>

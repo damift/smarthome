@@ -37,6 +37,7 @@ Route::apiResource('types', TypeController::class);
 // endpoint to update user role 
 Route::middleware('auth:sanctum')
     ->put('/users/{id}/role', [AuthController::class, 'updateRole']);
+Route::post('/users/{id}/password', [AuthController::class, 'updatePassword'])->middleware('auth:sanctum');
 
 Route::post('/devices/{device}/execute', [DeviceController::class, 'execute'])->middleware('auth:sanctum');
 

@@ -10,9 +10,11 @@ export default function UserList({
   users = [],
   onRoleChange,
   onRemove,
+  onChangePassword,
   showActions = true,
   deletingId = null,
   updatingRoleId = null,
+  changingPasswordId = null,
 }) {
   return (
     <div className="overflow-x-auto rounded-lg border border-zinc-900">
@@ -58,14 +60,24 @@ export default function UserList({
 
                 {showActions && (
                   <td className="px-6 py-4">
-                    <Button
-                      variant="destructive"
-                      size="sm"
-                      onClick={() => onRemove?.(u.id)}
-                      disabled={deletingId === u.id}
-                    >
-                      {deletingId === u.id ? "Removing..." : "Remove"}
-                    </Button>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => onChangePassword?.(u)}
+                        disabled={changingPasswordId === u.id}
+                      >
+                        {changingPasswordId === u.id ? "Saving..." : "Change password"}
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => onRemove?.(u.id)}
+                        disabled={deletingId === u.id}
+                      >
+                        {deletingId === u.id ? "Removing..." : "Remove"}
+                      </Button>
+                    </div>
                   </td>
                 )}
               </tr>
