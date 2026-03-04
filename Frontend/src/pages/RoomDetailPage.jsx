@@ -317,37 +317,22 @@ export default function RoomDetailPage() {
                 </div>
 
                 <div className="border-t border-zinc-200 pt-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm text-zinc-700">Power</span>
-                    <button
-                      onClick={() => handleToggleDevice(device.id, device.status)}
-                      disabled={isToggling}
-                      className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                        device.active ? "bg-black" : "bg-zinc-300"
-                      } ${isToggling ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                    >
-                      <span
-                        className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                          device.active ? "translate-x-6" : "translate-x-1"
-                        }`}
-                      />
-                    </button>
-                  </div>
-
-                  {device.type === "LIGHT" && (
-                    <div className="mt-4 pt-4 border-t border-zinc-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-zinc-700">Brightness</span>
-                        <span className="text-sm text-zinc-600">80%</span>
-                      </div>
-                      <input
-                        type="range"
-                        min="0"
-                        max="100"
-                        defaultValue="80"
-                        className="w-full h-2 bg-zinc-300 rounded-lg appearance-none cursor-pointer"
-                        disabled={!device.active}
-                      />
+                  {device.type !== "THERMOSTAT" && (
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm text-zinc-700">Power</span>
+                      <button
+                        onClick={() => handleToggleDevice(device.id, device.status)}
+                        disabled={isToggling}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                          device.active ? "bg-black" : "bg-zinc-300"
+                        } ${isToggling ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                      >
+                        <span
+                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                            device.active ? "translate-x-6" : "translate-x-1"
+                          }`}
+                        />
+                      </button>
                     </div>
                   )}
 
