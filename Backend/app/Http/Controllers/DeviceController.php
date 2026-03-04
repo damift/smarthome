@@ -7,6 +7,7 @@ use App\Models\Type;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Action;
+use App\Models\History;
 
 class DeviceController extends Controller
 {
@@ -110,7 +111,8 @@ public function index()
     }
 
     
-   public function execute(Request $request, Device $device)
+
+public function execute(Request $request, Device $device)
 {
     $validated = $request->validate([
         'action_id' => 'required|exists:actions,id',
@@ -130,22 +132,28 @@ public function index()
         ], 422);
     }
 
-return DB::transaction(function () use ($device, $action, $validated) {
+    return DB::transaction(function () use ($device, $action, $validated, $request) {
+        $state = (array) $device->state;
+        $state[$action->name] = $validated['value'];
+        $device->update(['state' => $state]);
 
-    $state = (array) $device->state; // Always force array
+        // 👇 Log the action
+        History::create([
+'user_id' => $request->user()?->id,
+            'room_id'   => $device->room_id,
+            'device_id' => $device->id,
+            'action_id' => $action->id,
+            'value'     => $validated['value'],
+        ]);
 
-    // Update the specific action key
-    $state[$action->name] = $validated['value'];
-
-    // Save to the correct column
-    $device->update(['state' => $state]);
-
-    return response()->json([
-        'message' => 'Actie succesvol uitgevoerd',
-        'device_name' => $device->name,
-        'new_status' => $state
-    ]);
-});
+        return response()->json([
+            'message'    => 'Actie succesvol uitgevoerd',
+            'device_name' => $device->name,
+            'new_status' => $state,
+            'device_id'  => $device->id,
+            'action_id'  => $action->name,
+        ]);
+    });
+}
 }
 
-}

@@ -6,7 +6,10 @@ use App\Http\Controllers\TestController;
 use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoomsController;
 use App\Http\Controllers\DeviceController;
+use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\TypeController;
+use App\Models\History;
+
 
 Route::post('/login',    [AuthController::class, 'login']);
 Route::post('/register', [AuthController::class, 'register']);
@@ -35,4 +38,7 @@ Route::apiResource('types', TypeController::class);
 Route::middleware('auth:sanctum')
     ->put('/users/{id}/role', [AuthController::class, 'updateRole']);
 
-    Route::post('/devices/{device}/execute', [DeviceController::class, 'execute']);
+Route::post('/devices/{device}/execute', [DeviceController::class, 'execute'])->middleware('auth:sanctum');
+
+    // routes/api.php
+Route::get('/logs', [HistoryController::class, 'index']);

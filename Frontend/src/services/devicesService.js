@@ -10,7 +10,9 @@ export const devicesService = {
       });
 
       if (!response.ok) {
-        console.warn(`devicesService: response not ok ${response.status} ${response.statusText}`);
+        console.warn(
+          `devicesService: response not ok ${response.status} ${response.statusText}`,
+        );
         return [];
       }
 
@@ -58,7 +60,9 @@ export const devicesService = {
           const errorMessages = Object.values(data.errors).flat().join(", ");
           throw new Error(errorMessages);
         }
-        throw new Error(data.message || `Failed to create device: ${response.statusText}`);
+        throw new Error(
+          data.message || `Failed to create device: ${response.statusText}`,
+        );
       }
 
       return data;
@@ -84,7 +88,9 @@ export const devicesService = {
           const errorMessages = Object.values(data.errors).flat().join(", ");
           throw new Error(errorMessages);
         }
-        throw new Error(data.message || `Failed to update device: ${response.statusText}`);
+        throw new Error(
+          data.message || `Failed to update device: ${response.statusText}`,
+        );
       }
 
       return data;
@@ -113,12 +119,16 @@ export const devicesService = {
     }
   },
 
-  // Stuurt een dynamische actie (zoals TURN_ON of SET_TEMPERATURE) naar de execute endpoint.
   async executeDeviceAction(id, actionId, value) {
     try {
+      const token = localStorage.getItem("token");
+
       const response = await fetch(`${API_BASE_URL}/devices/${id}/execute`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${token}`,
+        },
         body: JSON.stringify({
           action_id: actionId,
           value,
@@ -128,7 +138,11 @@ export const devicesService = {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
-        throw new Error(data.error || data.message || `Failed to execute action: ${response.statusText}`);
+        throw new Error(
+          data.error ||
+            data.message ||
+            `Failed to execute action: ${response.statusText}`,
+        );
       }
 
       return data;
