@@ -10,11 +10,14 @@ export default function RoomDetailPage() {
   const [devices, setDevices] = useState([]);
   const [roomName, setRoomName] = useState("");
   const [temperatureByDevice, setTemperatureByDevice] = useState({});
+  const [brightnessByDevice, setBrightnessByDevice] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
   const [toggling, setToggling] = useState({});
   const [savingTemperature, setSavingTemperature] = useState({});
+  const [savingBrightness, setSavingBrightness] = useState({});
   const temperatureCommitTimersRef = useRef({});
+  const brightnessCommitTimersRef = useRef({});
 
   useEffect(() => {
     // Bouwt room-details op vanuit rooms + devices en normaliseert backendverschillen.
@@ -103,6 +106,21 @@ export default function RoomDetailPage() {
           });
           return next;
         });
+        // Initialiseer sliderwaarden per licht op basis van state of default.
+        setBrightnessByDevice((prev) => {
+          const next = {};
+          roomDevices.forEach((device) => {
+            const stateBrightness = Number(
+              device.state?.SET_BRIGHTNESS ??
+                device.state?.brightness ??
+                device.state?.BRIGHTNESS ??
+                0
+            );
+            const boundedBrightness = Number.isFinite(stateBrightness) ? Math.max(0, Math.min(100, stateBrightness)) : 0;
+            next[device.id] = prev[device.id] ?? boundedBrightness;
+          });
+          return next;
+        });
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -116,9 +134,11 @@ export default function RoomDetailPage() {
 
   useEffect(() => {
     // Ruimt pending debounce timers op bij unmount.
-    const timers = temperatureCommitTimersRef.current;
+    const tempTimers = temperatureCommitTimersRef.current;
+    const brightnessTimers = brightnessCommitTimersRef.current;
     return () => {
-      Object.values(timers).forEach((timerId) => clearTimeout(timerId));
+      Object.values(tempTimers).forEach((timerId) => clearTimeout(timerId));
+      Object.values(brightnessTimers).forEach((timerId) => clearTimeout(timerId));
     };
   }, []);
 
@@ -240,6 +260,62 @@ export default function RoomDetailPage() {
     }
   };
 
+  const handleBrightnessChange = (deviceId, value) => {
+    const nextValue = Number(value);
+
+    setBrightnessByDevice((prev) => ({
+      ...prev,
+      [deviceId]: nextValue,
+    }));
+
+    // Debounce zodat slepen niet voor elke pixel een request triggert.
+    const existingTimer = brightnessCommitTimersRef.current[deviceId];
+    if (existingTimer) {
+      clearTimeout(existingTimer);
+    }
+
+    brightnessCommitTimersRef.current[deviceId] = setTimeout(() => {
+      commitBrightness(deviceId, nextValue);
+    }, 250);
+  };
+
+  const commitBrightness = async (deviceId, explicitValue = null) => {
+    const device = devices.find((d) => d.id === deviceId);
+    if (!device) return;
+
+    // Stuurt de definitieve brightness naar de execute endpoint.
+    const actionId = getActionId(device, "SET_BRIGHTNESS") ?? 4;
+    if (!actionId) {
+      toast.error("SET_BRIGHTNESS action ontbreekt voor dit device");
+      return;
+    }
+
+    const currentBrightness = Number(explicitValue ?? brightnessByDevice[deviceId] ?? 0);
+
+    try {
+      setSavingBrightness((prev) => ({ ...prev, [deviceId]: true }));
+      await devicesService.executeDeviceAction(deviceId, actionId, currentBrightness);
+
+      setDevices((prev) =>
+        prev.map((d) =>
+          d.id === deviceId
+            ? {
+                ...d,
+                state: {
+                  ...(d.state || {}),
+                  SET_BRIGHTNESS: currentBrightness,
+                },
+              }
+            : d
+        )
+      );
+    } catch (err) {
+      toast.error(`Failed to set brightness: ${err.message}`);
+    } finally {
+      setSavingBrightness((prev) => ({ ...prev, [deviceId]: false }));
+    }
+  };
+
   const deviceIcons = {
     LIGHT: Lightbulb,
     THERMOSTAT: Thermometer,
@@ -297,6 +373,8 @@ export default function RoomDetailPage() {
             const isToggling = toggling[device.id];
             const currentTemp = temperatureByDevice[device.id] ?? 22;
             const isSavingTemp = savingTemperature[device.id];
+            const currentBrightness = brightnessByDevice[device.id] ?? 0;
+            const isSavingLightBrightness = savingBrightness[device.id];
 
             return (
               <div key={device.id} className="border border-zinc-300 rounded p-6 bg-white hover:shadow-sm transition-shadow">
@@ -364,6 +442,30 @@ export default function RoomDetailPage() {
                         />
                         <span className="text-sm font-semibold text-black w-14 text-right">
                           {currentTemp}&deg;C
+                        </span>
+                      </div>
+                    </div>
+                  )}
+
+                  {device.type === "LIGHT" && (
+                    <div className="mt-4 pt-4 border-t border-zinc-200">
+                      <div className="flex justify-between items-center mb-2">
+                        <span className="text-sm text-zinc-700">Brightness</span>
+                      </div>
+                      <div className="flex items-center gap-3">
+                        <input
+                          type="range"
+                          min="0"
+                          max="100"
+                          step="1"
+                          value={currentBrightness}
+                          onChange={(e) => handleBrightnessChange(device.id, e.target.value)}
+                          onBlur={() => commitBrightness(device.id)}
+                          className="flex-1 h-2 bg-zinc-300 rounded-lg appearance-none cursor-pointer"
+                          disabled={isSavingLightBrightness}
+                        />
+                        <span className="text-sm font-semibold text-black w-14 text-right">
+                          {currentBrightness}%
                         </span>
                       </div>
                     </div>
