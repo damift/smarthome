@@ -5,19 +5,45 @@ import { devicesService } from "@/services/devicesService";
 import { roomsService } from "@/services/roomsService";
 import { toast } from "sonner";
 
+// Power-actions gebruiken we ook voor statusbadges (ON/OFF).
+const POWER_ACTIONS = new Set(["TURN_ON", "TURN_OFF"]);
+
+// Uniforme value_type parser, want backend kan mixed casing teruggeven.
+function getValueType(action) {
+  return String(action?.value_type || "").toUpperCase();
+}
+
+function isBooleanAction(action) {
+  return getValueType(action) === "BOOLEAN";
+}
+
+function isSliderAction(action) {
+  const type = getValueType(action);
+  return type === "INT" || type === "DECIMAL";
+}
+
+function isStringAction(action) {
+  return getValueType(action) === "STRING";
+}
+
+// Zet action keys zoals SET_TEMPERATURE om naar leesbare labels.
+function formatActionLabel(name) {
+  return String(name || "")
+    .toLowerCase()
+    .split("_")
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(" ");
+}
+
 export default function RoomDetailPage() {
   const { roomId } = useParams();
+  // devices bevat de genormaliseerde records + actions/state voor dynamisch renderen.
   const [devices, setDevices] = useState([]);
   const [roomName, setRoomName] = useState("");
-  const [temperatureByDevice, setTemperatureByDevice] = useState({});
-  const [brightnessByDevice, setBrightnessByDevice] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [toggling, setToggling] = useState({});
-  const [savingTemperature, setSavingTemperature] = useState({});
-  const [savingBrightness, setSavingBrightness] = useState({});
-  const temperatureCommitTimersRef = useRef({});
-  const brightnessCommitTimersRef = useRef({});
+  const [savingActions, setSavingActions] = useState({});
+  const actionCommitTimersRef = useRef({});
 
   useEffect(() => {
     // Bouwt room-details op vanuit rooms + devices en normaliseert backendverschillen.
@@ -31,6 +57,7 @@ export default function RoomDetailPage() {
 
         const roomParam = decodeURIComponent(roomId || "").trim();
         const roomParamLower = roomParam.toLowerCase();
+        // Ondersteunt zowel route op room-id als room-naam.
         const roomByRoute =
           roomList.find((room) => String(room.id) === roomParam) ||
           roomList.find((room) => String(room.name || "").toLowerCase() === roomParamLower);
@@ -60,9 +87,10 @@ export default function RoomDetailPage() {
             (typeof device.room === "string" ? device.room : device.room?.name) || device.room_name || "";
           const state = typeof device.state === "object" && device.state !== null ? device.state : {};
 
-          const isOnFromState = !!state.TURN_ON && !state.TURN_OFF;
-          const status = typeof device.status === "string" ? device.status.toUpperCase() : isOnFromState ? "ON" : "OFF";
+          const activeFromState = !!state.TURN_ON && !state.TURN_OFF;
+          const status = typeof device.status === "string" ? device.status.toUpperCase() : activeFromState ? "ON" : "OFF";
 
+          // Prefer device.actions; fallback naar type.actions als backend dat zo terugstuurt.
           const actionsFromDevice = Array.isArray(device.actions)
             ? device.actions
             : Array.isArray(device.type?.actions)
@@ -91,36 +119,6 @@ export default function RoomDetailPage() {
         });
 
         setDevices(roomDevices);
-        // Initialiseer sliderwaarden per thermostaat op basis van state of default.
-        setTemperatureByDevice((prev) => {
-          const next = {};
-          roomDevices.forEach((device) => {
-            const stateTemp = Number(
-              device.state?.SET_TEMPERATURE ??
-                device.state?.temperature ??
-                device.state?.TEMP ??
-                device.state?.temp
-            );
-            const boundedTemp = Number.isFinite(stateTemp) ? Math.max(10, Math.min(35, stateTemp)) : 22;
-            next[device.id] = prev[device.id] ?? boundedTemp;
-          });
-          return next;
-        });
-        // Initialiseer sliderwaarden per licht op basis van state of default.
-        setBrightnessByDevice((prev) => {
-          const next = {};
-          roomDevices.forEach((device) => {
-            const stateBrightness = Number(
-              device.state?.SET_BRIGHTNESS ??
-                device.state?.brightness ??
-                device.state?.BRIGHTNESS ??
-                0
-            );
-            const boundedBrightness = Number.isFinite(stateBrightness) ? Math.max(0, Math.min(100, stateBrightness)) : 0;
-            next[device.id] = prev[device.id] ?? boundedBrightness;
-          });
-          return next;
-        });
         setError(null);
       } catch (err) {
         setError(err.message);
@@ -134,186 +132,119 @@ export default function RoomDetailPage() {
 
   useEffect(() => {
     // Ruimt pending debounce timers op bij unmount.
-    const tempTimers = temperatureCommitTimersRef.current;
-    const brightnessTimers = brightnessCommitTimersRef.current;
+    const timers = actionCommitTimersRef.current;
     return () => {
-      Object.values(tempTimers).forEach((timerId) => clearTimeout(timerId));
-      Object.values(brightnessTimers).forEach((timerId) => clearTimeout(timerId));
+      Object.values(timers).forEach((timerId) => clearTimeout(timerId));
     };
   }, []);
 
-  const getActionId = (device, actionName) => {
-    // Zoekt het juiste action_id op basis van action naam.
-    const action = (device.actions || []).find(
-      (item) => String(item?.name || "").toUpperCase() === String(actionName).toUpperCase()
+  // Unieke sleutel per action-control voor loading/timer state.
+  const getActionKey = (deviceId, actionId) => `${deviceId}:${actionId}`;
+
+  const getCurrentActionValue = (device, action) => {
+    // Waarde komt altijd uit device.state[action.name].
+    const raw = device.state?.[action.name];
+    if (raw !== undefined && raw !== null) return raw;
+
+    if (isBooleanAction(action)) return false;
+    if (isSliderAction(action)) return 0;
+    return "";
+  };
+
+  const getSliderConfig = (action) => {
+    const actionName = String(action?.name || "").toUpperCase();
+    const minFromAction = Number(action?.min);
+    const maxFromAction = Number(action?.max);
+    const type = getValueType(action);
+
+    // Gebruik backend min/max indien aanwezig, anders domijnspecifieke defaults.
+    const fallbackMin = actionName.includes("TEMPERATURE") ? 10 : 0;
+    const fallbackMax = actionName.includes("TEMPERATURE") ? 35 : 100;
+
+    return {
+      min: Number.isFinite(minFromAction) ? minFromAction : fallbackMin,
+      max: Number.isFinite(maxFromAction) ? maxFromAction : fallbackMax,
+      step: type === "DECIMAL" ? 0.5 : 1,
+    };
+  };
+
+  const applyLocalActionValue = (deviceId, actionName, value) => {
+    // Optimistic UI update: toon direct nieuwe waarde voordat request klaar is.
+    setDevices((prev) =>
+      prev.map((device) => {
+        if (device.id !== deviceId) return device;
+
+        const nextState = {
+          ...(device.state || {}),
+          [actionName]: value,
+        };
+
+        // Houdt status-badge synchroon wanneer power-actions wijzigen.
+        if (POWER_ACTIONS.has(actionName)) {
+          const nextActive = !!nextState.TURN_ON && !nextState.TURN_OFF;
+          return {
+            ...device,
+            state: nextState,
+            active: nextActive,
+            status: nextActive ? "ON" : "OFF",
+          };
+        }
+
+        return {
+          ...device,
+          state: nextState,
+        };
+      })
     );
-    return action?.id ?? null;
   };
 
-  const handleToggleDevice = async (deviceId, currentStatus) => {
-    const device = devices.find((d) => d.id === deviceId);
-    if (!device) return;
-
-    // Bepaalt welke execute-action gebruikt moet worden voor aan/uit.
-    const newStatus = currentStatus === "ON" ? "OFF" : "ON";
-    const turnOnActionId = getActionId(device, "TURN_ON");
-    const turnOffActionId = getActionId(device, "TURN_OFF");
-    const actionPayload =
-      newStatus === "ON"
-        ? turnOnActionId
-          ? { actionId: turnOnActionId, value: true }
-          : turnOffActionId
-          ? { actionId: turnOffActionId, value: false }
-          : null
-        : turnOffActionId
-        ? { actionId: turnOffActionId, value: true }
-        : turnOnActionId
-        ? { actionId: turnOnActionId, value: false }
-        : null;
-
+  const executeAction = async (deviceId, action, value) => {
+    const actionKey = getActionKey(deviceId, action.id);
     try {
-      setToggling((prev) => ({ ...prev, [deviceId]: true }));
-
-      if (!actionPayload) {
-        throw new Error("No valid power action configured for this device");
-      }
-      await devicesService.executeDeviceAction(deviceId, actionPayload.actionId, actionPayload.value);
-
-      setDevices((prev) =>
-        prev.map((d) =>
-          d.id === deviceId
-            ? {
-                ...d,
-                status: newStatus,
-                active: newStatus === "ON",
-                state: {
-                  ...(d.state || {}),
-                  TURN_ON: newStatus === "ON",
-                  TURN_OFF: newStatus === "OFF",
-                },
-              }
-            : d
-        )
-      );
-
-      toast.success(`${device.name} turned ${newStatus}`);
+      setSavingActions((prev) => ({ ...prev, [actionKey]: true }));
+      // Alle action writes lopen via de execute endpoint.
+      await devicesService.executeDeviceAction(deviceId, action.id, value);
     } catch (err) {
-      toast.error(`Failed to toggle device: ${err.message}`);
+      toast.error(`Failed to execute ${action.name}: ${err.message}`);
     } finally {
-      setToggling((prev) => ({ ...prev, [deviceId]: false }));
+      setSavingActions((prev) => ({ ...prev, [actionKey]: false }));
     }
   };
 
-  const handleTemperatureChange = (deviceId, value) => {
-    const nextValue = Number(value);
+  const scheduleActionCommit = (deviceId, action, value, delayMs = 250) => {
+    // Debounce voor sliders om request-spam te voorkomen tijdens slepen.
+    const timerKey = getActionKey(deviceId, action.id);
+    const existingTimer = actionCommitTimersRef.current[timerKey];
+    if (existingTimer) clearTimeout(existingTimer);
 
-    setTemperatureByDevice((prev) => ({
-      ...prev,
-      [deviceId]: nextValue,
-    }));
-
-    // Debounce zodat slepen niet voor elke pixel een request triggert.
-    const existingTimer = temperatureCommitTimersRef.current[deviceId];
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-    }
-
-    temperatureCommitTimersRef.current[deviceId] = setTimeout(() => {
-      commitTemperature(deviceId, nextValue);
-    }, 250);
+    actionCommitTimersRef.current[timerKey] = setTimeout(() => {
+      executeAction(deviceId, action, value);
+    }, delayMs);
   };
 
-  const commitTemperature = async (deviceId, explicitValue = null) => {
-    const device = devices.find((d) => d.id === deviceId);
-    if (!device) return;
-
-    // Stuurt de definitieve temperatuur naar de execute endpoint.
-    const actionId = getActionId(device, "SET_TEMPERATURE");
-    if (!actionId) {
-      toast.error("SET_TEMPERATURE action ontbreekt voor dit device");
-      return;
-    }
-
-    const currentTemp = Number(explicitValue ?? temperatureByDevice[deviceId] ?? 22);
-
-    try {
-      setSavingTemperature((prev) => ({ ...prev, [deviceId]: true }));
-      await devicesService.executeDeviceAction(deviceId, actionId, currentTemp);
-
-      setDevices((prev) =>
-        prev.map((d) =>
-          d.id === deviceId
-            ? {
-                ...d,
-                state: {
-                  ...(d.state || {}),
-                  SET_TEMPERATURE: currentTemp,
-                },
-              }
-            : d
-        )
-      );
-    } catch (err) {
-      toast.error(`Failed to set temperature: ${err.message}`);
-    } finally {
-      setSavingTemperature((prev) => ({ ...prev, [deviceId]: false }));
-    }
+  const flushActionCommit = (deviceId, action, value) => {
+    // Force immediate save (bijv. bij blur).
+    const timerKey = getActionKey(deviceId, action.id);
+    const existingTimer = actionCommitTimersRef.current[timerKey];
+    if (existingTimer) clearTimeout(existingTimer);
+    executeAction(deviceId, action, value);
   };
 
-  const handleBrightnessChange = (deviceId, value) => {
-    const nextValue = Number(value);
-
-    setBrightnessByDevice((prev) => ({
-      ...prev,
-      [deviceId]: nextValue,
-    }));
-
-    // Debounce zodat slepen niet voor elke pixel een request triggert.
-    const existingTimer = brightnessCommitTimersRef.current[deviceId];
-    if (existingTimer) {
-      clearTimeout(existingTimer);
-    }
-
-    brightnessCommitTimersRef.current[deviceId] = setTimeout(() => {
-      commitBrightness(deviceId, nextValue);
-    }, 250);
+  const handleBooleanActionToggle = (device, action) => {
+    const current = Boolean(getCurrentActionValue(device, action));
+    const nextValue = !current;
+    applyLocalActionValue(device.id, action.name, nextValue);
+    flushActionCommit(device.id, action, nextValue);
   };
 
-  const commitBrightness = async (deviceId, explicitValue = null) => {
-    const device = devices.find((d) => d.id === deviceId);
-    if (!device) return;
+  const handleSliderActionChange = (device, action, rawValue) => {
+    const parsed = Number(rawValue);
+    applyLocalActionValue(device.id, action.name, parsed);
+    scheduleActionCommit(device.id, action, parsed);
+  };
 
-    // Stuurt de definitieve brightness naar de execute endpoint.
-    const actionId = getActionId(device, "SET_BRIGHTNESS") ?? 4;
-    if (!actionId) {
-      toast.error("SET_BRIGHTNESS action ontbreekt voor dit device");
-      return;
-    }
-
-    const currentBrightness = Number(explicitValue ?? brightnessByDevice[deviceId] ?? 0);
-
-    try {
-      setSavingBrightness((prev) => ({ ...prev, [deviceId]: true }));
-      await devicesService.executeDeviceAction(deviceId, actionId, currentBrightness);
-
-      setDevices((prev) =>
-        prev.map((d) =>
-          d.id === deviceId
-            ? {
-                ...d,
-                state: {
-                  ...(d.state || {}),
-                  SET_BRIGHTNESS: currentBrightness,
-                },
-              }
-            : d
-        )
-      );
-    } catch (err) {
-      toast.error(`Failed to set brightness: ${err.message}`);
-    } finally {
-      setSavingBrightness((prev) => ({ ...prev, [deviceId]: false }));
-    }
+  const handleStringActionChange = (device, action, rawValue) => {
+    applyLocalActionValue(device.id, action.name, rawValue);
   };
 
   const deviceIcons = {
@@ -370,11 +301,7 @@ export default function RoomDetailPage() {
         <div className="space-y-4">
           {devices.map((device) => {
             const IconComponent = deviceIcons[device.type] || Radio;
-            const isToggling = toggling[device.id];
-            const currentTemp = temperatureByDevice[device.id] ?? 22;
-            const isSavingTemp = savingTemperature[device.id];
-            const currentBrightness = brightnessByDevice[device.id] ?? 0;
-            const isSavingLightBrightness = savingBrightness[device.id];
+            const hasPowerAction = (device.actions || []).some((action) => POWER_ACTIONS.has(String(action?.name || "").toUpperCase()));
 
             return (
               <div key={device.id} className="border border-zinc-300 rounded p-6 bg-white hover:shadow-sm transition-shadow">
@@ -392,84 +319,108 @@ export default function RoomDetailPage() {
                       <p className="text-sm text-zinc-500">{device.type}</p>
                     </div>
                   </div>
-                  <div
-                    className={`px-3 py-1 rounded text-sm font-medium border ${
-                      device.active
-                        ? "bg-green-50 text-green-700 border-green-300"
-                        : "bg-zinc-100 text-zinc-600 border-zinc-300"
-                    }`}
-                  >
-                    {device.status}
-                  </div>
+                  {hasPowerAction && (
+                    <div
+                      className={`px-3 py-1 rounded text-sm font-medium border ${
+                        device.active
+                          ? "bg-green-50 text-green-700 border-green-300"
+                          : "bg-zinc-100 text-zinc-600 border-zinc-300"
+                      }`}
+                    >
+                      {device.status}
+                    </div>
+                  )}
                 </div>
 
-                <div className="border-t border-zinc-200 pt-4">
-                  {device.type !== "THERMOSTAT" && (
-                    <div className="flex items-center justify-between">
-                      <span className="text-sm text-zinc-700">Power</span>
-                      <button
-                        onClick={() => handleToggleDevice(device.id, device.status)}
-                        disabled={isToggling}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
-                          device.active ? "bg-black" : "bg-zinc-300"
-                        } ${isToggling ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
-                      >
-                        <span
-                          className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
-                            device.active ? "translate-x-6" : "translate-x-1"
-                          }`}
-                        />
-                      </button>
-                    </div>
+                <div className="border-t border-zinc-200 pt-4 space-y-4">
+                  {(device.actions || []).length === 0 && (
+                    <p className="text-sm text-zinc-500">No controls available for this device.</p>
                   )}
 
-                  {device.type === "THERMOSTAT" && (
-                    <div className="mt-4 pt-4 border-t border-zinc-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-zinc-700">Temperature</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="range"
-                          min="10"
-                          max="35"
-                          step="1"
-                          value={currentTemp}
-                          onChange={(e) => handleTemperatureChange(device.id, e.target.value)}
-                          onBlur={() => commitTemperature(device.id)}
-                          className="flex-1 h-2 bg-zinc-300 rounded-lg appearance-none cursor-pointer"
-                          disabled={isSavingTemp}
-                        />
-                        <span className="text-sm font-semibold text-black w-14 text-right">
-                          {currentTemp}&deg;C
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                  {/* Dynamische action-renderer op basis van value_type uit de database. */}
+                  {(device.actions || []).map((action) => {
+                    const actionKey = getActionKey(device.id, action.id);
+                    const isSaving = !!savingActions[actionKey];
+                    const currentValue = getCurrentActionValue(device, action);
 
-                  {device.type === "LIGHT" && (
-                    <div className="mt-4 pt-4 border-t border-zinc-200">
-                      <div className="flex justify-between items-center mb-2">
-                        <span className="text-sm text-zinc-700">Brightness</span>
-                      </div>
-                      <div className="flex items-center gap-3">
-                        <input
-                          type="range"
-                          min="0"
-                          max="100"
-                          step="1"
-                          value={currentBrightness}
-                          onChange={(e) => handleBrightnessChange(device.id, e.target.value)}
-                          onBlur={() => commitBrightness(device.id)}
-                          className="flex-1 h-2 bg-zinc-300 rounded-lg appearance-none cursor-pointer"
-                          disabled={isSavingLightBrightness}
-                        />
-                        <span className="text-sm font-semibold text-black w-14 text-right">
-                          {currentBrightness}%
-                        </span>
-                      </div>
-                    </div>
-                  )}
+                    if (isBooleanAction(action)) {
+                      // BOOLEAN => toggle.
+                      return (
+                        <div key={action.id} className="flex items-center justify-between">
+                          <div>
+                            <p className="text-sm text-zinc-700">{formatActionLabel(action.name)}</p>
+                            {action.description && <p className="text-xs text-zinc-500">{action.description}</p>}
+                          </div>
+                          <button
+                            onClick={() => handleBooleanActionToggle(device, action)}
+                            disabled={isSaving}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${
+                              currentValue ? "bg-black" : "bg-zinc-300"
+                            } ${isSaving ? "opacity-50 cursor-not-allowed" : "cursor-pointer"}`}
+                          >
+                            <span
+                              className={`inline-block h-4 w-4 transform rounded-full bg-white transition-transform ${
+                                currentValue ? "translate-x-6" : "translate-x-1"
+                              }`}
+                            />
+                          </button>
+                        </div>
+                      );
+                    }
+
+                    if (isSliderAction(action)) {
+                      // INT/DECIMAL => slider met min/max uit action metadata.
+                      const { min, max, step } = getSliderConfig(action);
+                      const numericValue = Number(currentValue ?? 0);
+                      const unit = String(action.name || "").toUpperCase().includes("TEMPERATURE") ? "\u00B0C" : "%";
+
+                      return (
+                        <div key={action.id}>
+                          <div className="flex justify-between items-center mb-2">
+                            <div>
+                              <p className="text-sm text-zinc-700">{formatActionLabel(action.name)}</p>
+                              {action.description && <p className="text-xs text-zinc-500">{action.description}</p>}
+                            </div>
+                            <span className="text-sm font-semibold text-black w-16 text-right">
+                              {numericValue}
+                              {unit}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={min}
+                            max={max}
+                            step={step}
+                            value={numericValue}
+                            onChange={(e) => handleSliderActionChange(device, action, e.target.value)}
+                            onBlur={() => flushActionCommit(device.id, action, numericValue)}
+                            className="w-full h-2 bg-zinc-300 rounded-lg appearance-none cursor-pointer"
+                            disabled={isSaving}
+                          />
+                        </div>
+                      );
+                    }
+
+                    if (isStringAction(action)) {
+                      // STRING => text input.
+                      return (
+                        <div key={action.id}>
+                          <label className="text-sm text-zinc-700 block mb-2">{formatActionLabel(action.name)}</label>
+                          {action.description && <p className="text-xs text-zinc-500 mb-2">{action.description}</p>}
+                          <input
+                            type="text"
+                            value={String(currentValue ?? "")}
+                            onChange={(e) => handleStringActionChange(device, action, e.target.value)}
+                            onBlur={(e) => flushActionCommit(device.id, action, e.target.value)}
+                            className="w-full rounded-md border px-3 py-2 bg-white"
+                            disabled={isSaving}
+                          />
+                        </div>
+                      );
+                    }
+
+                    return null;
+                  })}
                 </div>
               </div>
             );
