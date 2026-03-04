@@ -17,6 +17,7 @@ export default function HistoryFilters({
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        {/* Search/user/room worden als controlled filter state van de parent gebruikt. */}
         <div>
           <label className="text-xs text-zinc-600">SEARCH</label>
           <input

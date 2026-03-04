@@ -2,6 +2,7 @@ import { getToken } from "@/lib/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 
+// Bouwt auth headers op basis van opgeslagen bearer token.
 function getAuthHeaders(includeJson = false) {
   const token = getToken();
   const headers = {};
@@ -15,6 +16,7 @@ function getAuthHeaders(includeJson = false) {
   return headers;
 }
 
+// Parse + foutafhandeling op 1 plek voor alle user endpoints.
 async function handleResponse(res) {
   const text = await res.text().catch(() => "");
   let data = null;
@@ -41,6 +43,7 @@ async function handleResponse(res) {
   return data;
 }
 
+// User-overzicht voor beheerpagina.
 export async function getUsers() {
   const res = await fetch(`${API_BASE}/api/user`, {
     method: "GET",
@@ -50,6 +53,7 @@ export async function getUsers() {
   return handleResponse(res);
 }
 
+// Gebruiker aanmaken via register endpoint (met optionele rol).
 export async function createUser({
   name,
   email,
@@ -79,6 +83,7 @@ export async function deleteUser(id) {
   return handleResponse(res);
 }
 
+// Roltoekenning gebruikt de dedicated backend endpoint.
 export async function assignRole(id, role) {
   // Backend gaf aan dat deze endpoint PUT verwacht
   // Als jouw backend route anders is, pas alleen de URL aan (bijv. /api/users/${id})

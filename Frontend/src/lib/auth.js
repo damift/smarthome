@@ -1,15 +1,18 @@
 const TOKEN_KEY = "token";
 const USER_KEY = "user";
 
+// Controleert puur op token-aanwezigheid in localStorage.
 export function isLoggedIn() {
   return Boolean(localStorage.getItem(TOKEN_KEY));
 }
 
+// Slaat auth-gegevens op die nodig zijn na login/register.
 export function setAuth(token, user) {
   if (token) localStorage.setItem(TOKEN_KEY, token);
   if (user) localStorage.setItem(USER_KEY, JSON.stringify(user));
 }
 
+// Maakt de client-side sessie leeg.
 export function logout() {
   localStorage.removeItem(TOKEN_KEY);
   localStorage.removeItem(USER_KEY);

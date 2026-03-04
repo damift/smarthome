@@ -1,6 +1,7 @@
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const roomsService = {
+  // Geeft alle kamers terug voor dashboards en selecties.
   async getRooms() {
     try {
       const response = await fetch(`${API_BASE_URL}/rooms`, {
@@ -22,6 +23,7 @@ export const roomsService = {
     }
   },
 
+  // Geeft detaildata van een specifieke kamer terug.
   async getRoomById(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/rooms/${id}`, {

@@ -1,6 +1,7 @@
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const historyService = {
+  // Normaliseert verschillende backend-response vormen naar 1 array voor de UI.
   async getLogs() {
     try {
       const response = await fetch(`${API_BASE_URL}/logs`, {

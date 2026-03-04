@@ -26,6 +26,7 @@ function normalizeRole(role) {
   return value === "admin" ? "admin" : "user";
 }
 
+// Vangt meerdere backend response-vormen af en normaliseert ze naar 1 users-array.
 function normalizeUsersResponse(data) {
   let list = [];
 
@@ -64,6 +65,7 @@ export default function UsersManagementPage() {
   const [formErrors, setFormErrors] = React.useState({});
   const [submitError, setSubmitError] = React.useState(null);
 
+  // Centrale loader die hergebruikt wordt na create/update acties.
   const loadUsers = React.useCallback(async () => {
     setLoadingUsers(true);
     try {
@@ -91,7 +93,7 @@ export default function UsersManagementPage() {
     if (!currentUser) return;
     if (previousRole === normalizedNewRole) return;
 
-    // Optimistic update
+    // Optimistic update: UI toont de nieuwe rol meteen.
     setUsers((prev) =>
       prev.map((u) => (u.id === id ? { ...u, role: normalizedNewRole } : u))
     );
@@ -103,7 +105,7 @@ export default function UsersManagementPage() {
     } catch (err) {
       console.error("Failed to assign role:", err);
 
-      // Revert naar vorige rol
+      // Fallback bij fout: zet de vorige rol direct terug.
       setUsers((prev) =>
         prev.map((u) => (u.id === id ? { ...u, role: previousRole } : u))
       );
@@ -144,6 +146,7 @@ export default function UsersManagementPage() {
   }
 
   function validateForm() {
+    // Houdt frontend validatie dicht bij de formstate voor snelle feedback.
     const errors = {};
 
     if (!form.name.trim()) {

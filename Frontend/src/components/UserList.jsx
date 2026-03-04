@@ -17,6 +17,7 @@ export default function UserList({
   return (
     <div className="overflow-x-auto rounded-lg border border-zinc-900">
       <table className="min-w-full table-fixed">
+        {/* Lijst gebruikt controlled role-selects voor inline role updates. */}
         <thead>
           <tr className="bg-white">
             <th className="px-6 py-3 text-left">Name</th>

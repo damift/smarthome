@@ -10,6 +10,7 @@ const linkIdle = "border-transparent text-zinc-500 hover:text-zinc-700";
 export default function AppLayout() {
   const navigate = useNavigate();
 
+  // Ruimt auth-state op en forceert terug naar login.
   function handleLogout() {
     logout();
     navigate("/login", { replace: true });
@@ -44,6 +45,7 @@ export default function AppLayout() {
       {/* Navigation Tabs */}
       <nav className="border-b border-zinc-300 bg-white">
         <div className="mx-auto max-w-full px-6 flex gap-1">
+          {/* Alle hoofdmodules van de app gebruiken dezelfde tabstijl. */}
           <NavLink 
             to="/dashboard" 
             className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}

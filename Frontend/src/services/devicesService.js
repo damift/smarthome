@@ -1,6 +1,7 @@
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const devicesService = {
+  // Haalt alle devices op en faalt zacht met een lege lijst.
   async getDevices() {
     try {
       const response = await fetch(`${API_BASE_URL}/devices`, {
@@ -112,6 +113,7 @@ export const devicesService = {
     }
   },
 
+  // Stuurt een dynamische actie (zoals TURN_ON of SET_TEMPERATURE) naar de execute endpoint.
   async executeDeviceAction(id, actionId, value) {
     try {
       const response = await fetch(`${API_BASE_URL}/devices/${id}/execute`, {
@@ -136,6 +138,7 @@ export const devicesService = {
     }
   },
 
+  // Legacy toggle endpoint; alleen gebruiken als execute-flow niet beschikbaar is.
   async toggleDevice(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/devices/${id}/toggle`, {

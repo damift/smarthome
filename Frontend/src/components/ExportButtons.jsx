@@ -4,6 +4,7 @@ export default function ExportButtons({ data, items, filenamePrefix = "history-e
   const rows = items || data || [];
   const [open, setOpen] = useState(false);
 
+  // Exporteert de huidige dataset 1-op-1 als JSON download.
   const exportJSON = () => {
     const blob = new Blob([JSON.stringify(rows, null, 2)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -15,6 +16,7 @@ export default function ExportButtons({ data, items, filenamePrefix = "history-e
     setOpen(false);
   };
 
+  // Bouwt CSV incl. escaping zodat Excel/Sheets het direct kan openen.
   const exportCSV = () => {
     if (!rows || !rows.length) return;
     const headers = ["timestamp", "user", "room", "device", "action", "description"];

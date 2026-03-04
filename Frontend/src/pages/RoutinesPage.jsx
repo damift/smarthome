@@ -2,6 +2,7 @@ import React from "react";
 import RoutineCard from "@/components/RoutineCard";
 
 export default function RoutinesPage() {
+  // Statische routines totdat backend-routine endpoints gekoppeld zijn.
   const routines = [
     {
       id: 1,

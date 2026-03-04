@@ -10,6 +10,7 @@ export default function HistoryPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Eénmalig historylogs ophalen bij pagina-load.
     async function fetchLogs() {
       try {
         setLoading(true);
@@ -52,6 +53,7 @@ export default function HistoryPage() {
 
       {!loading && !error && (
         <div className="flex flex-col gap-4">
+          {/* Filters en export werken op dezelfde items-collectie. */}
           <div className="flex items-center justify-between gap-4">
             <div className="flex-1">
               <HistoryFilters />

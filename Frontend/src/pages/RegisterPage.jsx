@@ -15,6 +15,7 @@ export default function RegisterPage() {
     loading, error, submit
   } = useRegister();
 
+  // Stuurt register payload via hook en navigeert meteen na succes.
   async function handleSubmit(e) {
     e.preventDefault();
     const result = await submit();

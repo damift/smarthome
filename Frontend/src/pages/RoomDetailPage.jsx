@@ -17,6 +17,7 @@ export default function RoomDetailPage() {
   const temperatureCommitTimersRef = useRef({});
 
   useEffect(() => {
+    // Bouwt room-details op vanuit rooms + devices en normaliseert backendverschillen.
     async function fetchData() {
       try {
         setLoading(true);
@@ -35,6 +36,7 @@ export default function RoomDetailPage() {
         const targetRoomName = roomByRoute?.name || roomParam;
         setRoomName(targetRoomName);
 
+        // Mapt backend type-labels naar stabiele UI-categorieen.
         const mapType = (rawType) => {
           const value = String(rawType || "").toUpperCase();
           if (value.includes("THERMOSTAT")) return "THERMOSTAT";
@@ -44,6 +46,7 @@ export default function RoomDetailPage() {
           return "SENSOR";
         };
 
+        // Maakt van elk device een uniform object voor deze pagina.
         const normalizedDevices = deviceList.map((device) => {
           const typeName = device.type?.name || device.type || device.device_type;
           const roomIdFromDevice =
@@ -85,6 +88,7 @@ export default function RoomDetailPage() {
         });
 
         setDevices(roomDevices);
+        // Initialiseer sliderwaarden per thermostaat op basis van state of default.
         setTemperatureByDevice((prev) => {
           const next = {};
           roomDevices.forEach((device) => {
@@ -111,6 +115,7 @@ export default function RoomDetailPage() {
   }, [roomId]);
 
   useEffect(() => {
+    // Ruimt pending debounce timers op bij unmount.
     const timers = temperatureCommitTimersRef.current;
     return () => {
       Object.values(timers).forEach((timerId) => clearTimeout(timerId));
@@ -118,6 +123,7 @@ export default function RoomDetailPage() {
   }, []);
 
   const getActionId = (device, actionName) => {
+    // Zoekt het juiste action_id op basis van action naam.
     const action = (device.actions || []).find(
       (item) => String(item?.name || "").toUpperCase() === String(actionName).toUpperCase()
     );
@@ -128,6 +134,7 @@ export default function RoomDetailPage() {
     const device = devices.find((d) => d.id === deviceId);
     if (!device) return;
 
+    // Bepaalt welke execute-action gebruikt moet worden voor aan/uit.
     const newStatus = currentStatus === "ON" ? "OFF" : "ON";
     const turnOnActionId = getActionId(device, "TURN_ON");
     const turnOffActionId = getActionId(device, "TURN_OFF");
@@ -185,6 +192,7 @@ export default function RoomDetailPage() {
       [deviceId]: nextValue,
     }));
 
+    // Debounce zodat slepen niet voor elke pixel een request triggert.
     const existingTimer = temperatureCommitTimersRef.current[deviceId];
     if (existingTimer) {
       clearTimeout(existingTimer);
@@ -199,6 +207,7 @@ export default function RoomDetailPage() {
     const device = devices.find((d) => d.id === deviceId);
     if (!device) return;
 
+    // Stuurt de definitieve temperatuur naar de execute endpoint.
     const actionId = getActionId(device, "SET_TEMPERATURE");
     if (!actionId) {
       toast.error("SET_TEMPERATURE action ontbreekt voor dit device");

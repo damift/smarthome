@@ -2,6 +2,7 @@ import { Card, CardContent } from "@/components/shadcn/card";
 
 export default function AuthCard({ title = "Smart Home System", subtitle, children }) {
   return (
+    // Herbruikbare auth-container voor login/register varianten.
     <Card className="mx-auto w-[min(520px,92vw)] rounded-none border-2 border-black bg-white text-black shadow-none">
       <CardContent className="max-h-[90vh] overflow-auto px-6 py-6 sm:px-10 sm:py-10">
         <div className="flex justify-center">

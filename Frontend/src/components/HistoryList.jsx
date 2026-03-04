@@ -6,6 +6,7 @@ export default function HistoryList({ items = [] }) {
 
   return (
     <div className="grid grid-cols-1 gap-4">
+      {/* Wrapper rond HistoryItem kaarten voor oudere list-weergave. */}
       {items.map((it) => (
         <HistoryItem key={it.id} item={it} />
       ))}

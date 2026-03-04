@@ -11,6 +11,7 @@ export default function DashboardPage() {
   const [error, setError] = useState(null);
 
   useEffect(() => {
+    // Laadt kamers + devices tegelijk en bouwt een room-centric viewmodel voor de UI.
     const fetchRooms = async () => {
       try {
         setLoading(true);
@@ -22,6 +23,7 @@ export default function DashboardPage() {
         const roomList = Array.isArray(roomsData) ? roomsData : roomsData?.data || [];
         const deviceList = Array.isArray(devicesData) ? devicesData : devicesData?.data || [];
 
+        // Normaliseert verschillende status-formaten naar 1 active boolean.
         const normalizeDevice = (device) => {
           const status = typeof device.status === "string" ? device.status.toUpperCase() : null;
           const activeFromStatus = status ? status === "ON" : null;
@@ -65,6 +67,7 @@ export default function DashboardPage() {
         });
 
        
+        // Verrijkt elke room met devices, totalen en actieve counts.
         const merged = roomList.map((r) => {
           const roomIdKey = String(r.id);
           const roomNameKey = String(r.name || "").toLowerCase();
@@ -115,6 +118,7 @@ export default function DashboardPage() {
     );
   }
 
+  // Filtert op zijbalk-selectie; null betekent "All Rooms".
   const displayedRooms = selectedRoom ? rooms.filter((r) => r.id === selectedRoom) : rooms;
 
   return (

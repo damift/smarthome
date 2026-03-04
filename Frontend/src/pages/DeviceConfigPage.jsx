@@ -30,7 +30,7 @@ export default function DeviceConfigPage() {
   const [form, setForm] = useState({ name: "", type_id: null, room_id: "", status: "OFF" });
   const [editForm, setEditForm] = useState({ name: "", type_id: null, room_id: "", status: "OFF" });
 
-  // Fetch devices and rooms on component mount
+  // Haalt devices, rooms en types op zodra de pagina opent.
   useEffect(() => {
     fetchData();
   }, []);
@@ -43,7 +43,7 @@ export default function DeviceConfigPage() {
         roomsService.getRooms(),
         typesService.getTypes(),
       ]);
-      // Enrich devices with room names
+      // Verrijkt device records met leesbare room/type labels voor de tabel.
       const enrichedDevices = devicesData.map((device) => {
         const room = roomsData.find((r) => r.id === device.room_id);
         const typeObj = typesData.find((t) => t.id === device.type_id);
@@ -56,7 +56,7 @@ export default function DeviceConfigPage() {
       setDevices(enrichedDevices);
       setRooms(roomsData);
       setTypes(typesData);
-      // set default selections if data exist
+      // Zet standaard selectiewaarden zodat forms direct bruikbaar zijn.
       if (roomsData && roomsData.length > 0) {
         setForm((f) => ({ ...f, room_id: roomsData[0].id.toString() }));
         setEditForm((f) => ({ ...f, room_id: roomsData[0].id.toString() }));
@@ -75,6 +75,7 @@ export default function DeviceConfigPage() {
   }
 
   async function handleDelete(id) {
+    // Verwijdert een device en houdt de UI-lijst direct synchroon.
     if (!confirm("Delete device?")) return;
     try {
       await devicesService.deleteDevice(id);
@@ -88,6 +89,7 @@ export default function DeviceConfigPage() {
   }
 
   function handleEdit(id) {
+    // Laadt bestaande waarden in de edit modal.
     const device = devices.find((d) => d.id === id);
     if (device) {
       setEditingDevice(device);
@@ -119,7 +121,7 @@ export default function DeviceConfigPage() {
       
       const response = await devicesService.updateDevice(editingDevice.id, updatedData);
       
-      // Update devices list with room name
+      // Schrijft de bijgewerkte device terug in de lokale lijst.
       const room = rooms.find((r) => r.id === parseInt(editForm.room_id));
       const typeObj = types.find((t) => t.id === response.device.type_id);
       const updatedDevice = {
@@ -144,7 +146,7 @@ export default function DeviceConfigPage() {
   async function handleSubmit(e) {
     e.preventDefault();
     
-    // Validate room_id
+    // Voorkomt submit zonder room-koppeling.
     if (!form.room_id) {
       setError("Please select a room");
       return;
@@ -162,7 +164,7 @@ export default function DeviceConfigPage() {
       const response = await devicesService.createDevice(newDevice);
       console.log("Device created response:", response);
       
-      // Enrich with room name
+      // Voegt labels toe zodat de nieuwe rij direct correct rendert.
       const room = rooms.find((r) => r.id === parseInt(form.room_id));
       const typeObj = types.find((t) => t.id === response.device.type_id);
       const enrichedDevice = {

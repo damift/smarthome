@@ -10,6 +10,7 @@ export function useRegister() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Encapsuleert register-call + token/user opslag voor de RegisterPage.
   async function submit() {
     setError(null);
     setLoading(true);

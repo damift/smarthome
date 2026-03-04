@@ -8,6 +8,7 @@ export default function LoginPage() {
   const navigate = useNavigate();
   const { email, setEmail, password, setPassword, loading, error, submit } = useLogin();
 
+  // Probeert login en stuurt alleen bij succes door naar het dashboard.
   async function handleSubmit() {
     const result = await submit();
     if (result.ok) {

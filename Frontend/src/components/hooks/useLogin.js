@@ -8,6 +8,7 @@ export function useLogin() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
 
+  // Encapsuleert login-call + token/user opslag voor de LoginPage.
   async function submit() {
     setError(null);
     setLoading(true);

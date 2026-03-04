@@ -11,6 +11,7 @@ export default function AuthTextField({
 }) {
   return (
     <div className="space-y-3">
+      {/* Standaard input-veld voor auth forms met consistente styling. */}
       <Label htmlFor={id} className="text-base font-normal">
         {label}
       </Label>

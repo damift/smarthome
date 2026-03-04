@@ -25,6 +25,7 @@ export default function RoomSidebar({ rooms = [], selectedRoom = null, onSelectR
           <button
             key={room.id}
             type="button"
+            // Klik op geselecteerde room togglet terug naar "all rooms".
             onClick={() => onSelectRoom(room.id === selectedRoom ? null : room.id)}
             className={`block w-full text-left px-4 py-3 rounded-lg transition-colors ${
               selectedRoom === room.id

@@ -26,6 +26,7 @@ ReactDOM.createRoot(document.getElementById("root")).render(
         <Route path="/register" element={<Register />} />
 
         {/* protected routes */}
+        {/* Alles binnen deze wrapper vereist een geldige login/token. */}
         <Route
           element={
             <ProtectedRoute>

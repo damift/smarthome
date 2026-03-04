@@ -4,7 +4,7 @@ function formatTime(ts) {
   try {
     const d = new Date(ts);
     return d.toLocaleString();
-  } catch (e) {
+  } catch {
     return ts;
   }
 }
@@ -13,6 +13,7 @@ export default function HistoryTable({ items = [] }) {
   return (
     <div className="border rounded-md overflow-hidden bg-white">
       <table className="min-w-full table-fixed text-sm">
+        {/* Eenvoudige tabelweergave van de genormaliseerde history items. */}
         <thead className="bg-white">
           <tr>
             <th className="text-left px-4 py-3 border-b">Timestamp</th>

@@ -1,6 +1,7 @@
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const typesService = {
+  // Type-lijst voor formulieren en device-mapping.
   async getTypes() {
     try {
       const response = await fetch(`${API_BASE_URL}/types`, {
@@ -20,6 +21,7 @@ export const typesService = {
     }
   },
 
+  // Basis CRUD voor device types.
   async getType(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/types/${id}`, {

@@ -2,6 +2,7 @@ import React from "react";
 
 export default function HistoryItem({ item }) {
   return (
+    // Compacte kaartweergave van 1 history event.
     <div className="border border-zinc-200 rounded-md p-4 bg-white flex items-start gap-4">
       <div className="w-12 h-12 rounded-full bg-zinc-100 flex items-center justify-center text-zinc-800 font-semibold">
         {item.icon || "⚙️"}

@@ -5,6 +5,7 @@ import { Button } from "@/components/shadcn/button";
 export default function RoutineCard({ id, title, name, description, changes = [], items = [], icon, onActivate }) {
   const [isActive, setIsActive] = useState(true);
 
+  // Lokale UI-toggle; routine-activatie zelf gaat via onActivate callback.
   const handleToggle = () => setIsActive((v) => !v);
 
   const displayTitle = title ?? name;

@@ -2,12 +2,12 @@ import { Link } from "react-router-dom";
 import { Home } from "lucide-react";
 
 export default function RoomCard({ 
-  id, 
   name, 
   deviceCount, 
   activeDevices, 
   devices = [] 
 }) {
+  // Fallback iconset voor devices zonder expliciet icon uit de API.
   const deviceIcons = {
     lightbulb: "💡",
     thermostat: "🌡️",
@@ -53,6 +53,7 @@ export default function RoomCard({
 
       {/* View Details link */}
       <Link
+        // Route gebruikt roomnaam als parameter voor detailpagina.
         to={`/rooms/${encodeURIComponent(name)}`}
         className="text-blue-600 hover:text-blue-800 text-sm font-medium inline-flex items-center gap-0 transition-colors"
       >

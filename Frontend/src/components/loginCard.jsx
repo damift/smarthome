@@ -25,6 +25,7 @@ export default function LoginCard({
         <div className="mt-6 text-center text-sm">Login to continue</div>
 
         <form
+          // Houdt submit-logica in de parent (LoginPage/useLogin).
           onSubmit={(e) => {
             e.preventDefault();
             onSubmit();
