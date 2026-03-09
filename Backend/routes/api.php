@@ -9,6 +9,7 @@ use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\HistoryController;
 use App\Http\Controllers\RoutineController;
 use App\Http\Controllers\TypeController;
+use App\Http\Controllers\DeviceAccessController;
 use App\Models\History;
 
 
@@ -41,6 +42,8 @@ Route::middleware('auth:sanctum')
 Route::post('/users/{id}/password', [AuthController::class, 'updatePassword'])->middleware('auth:sanctum');
 
 Route::post('/devices/{device}/execute', [DeviceController::class, 'execute'])->middleware('auth:sanctum');
+Route::get('/device-access', [DeviceAccessController::class, 'index'])->middleware('auth:sanctum');
+Route::put('/device-access/{userId}', [DeviceAccessController::class, 'update'])->middleware('auth:sanctum');
 
     // routes/api.php
 Route::get('/logs', [HistoryController::class, 'index']);

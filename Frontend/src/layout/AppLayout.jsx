@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { logout } from "@/lib/auth";
+import { getUser, logout } from "@/lib/auth";
 import { Button } from "@/components/shadcn/button";
-import { LayoutGrid, RotateCcw, Clock, Users, Zap, LogOut } from "lucide-react";
+import { LayoutGrid, RotateCcw, Clock, Users, Zap, ShieldCheck, LogOut } from "lucide-react";
 
 const linkBase = "inline-flex items-center gap-2 px-4 py-2 text-sm font-medium transition border-b-2";
 const linkActive = "border-zinc-900 text-zinc-900";
@@ -9,6 +9,10 @@ const linkIdle = "border-transparent text-zinc-500 hover:text-zinc-700";
 
 export default function AppLayout() {
   const navigate = useNavigate();
+  const currentUser = getUser();
+  const role = String(currentUser?.role ?? "user").trim().toLowerCase() === "admin" ? "admin" : "user";
+  const displayName = currentUser?.name || currentUser?.email || "User";
+  const isAdmin = role === "admin";
 
   // Ruimt auth-state op en forceert terug naar login.
   function handleLogout() {
@@ -27,8 +31,10 @@ export default function AppLayout() {
 
           <div className="flex items-center gap-4">
             <div className="flex items-center gap-2 px-3 py-2 rounded border border-zinc-300">
-              <span className="text-sm font-medium text-zinc-900">Admin User</span>
-              <span className="ml-2 rounded-full bg-zinc-900 text-white px-2 py-0.5 text-xs font-bold">ADMIN</span>
+              <span className="text-sm font-medium text-zinc-900">{displayName}</span>
+              <span className="ml-2 rounded-full bg-zinc-900 text-white px-2 py-0.5 text-xs font-bold">
+                {role.toUpperCase()}
+              </span>
             </div>
             <Button 
               variant="outline" 
@@ -60,27 +66,42 @@ export default function AppLayout() {
             <RotateCcw className="w-4 h-4" />
             Routines
           </NavLink>
-          <NavLink 
-            to="/history" 
-            className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
-          >
-            <Clock className="w-4 h-4" />
-            History
-          </NavLink>
-          <NavLink 
-            to="/users" 
-            className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
-          >
-            <Users className="w-4 h-4" />
-            Users
-          </NavLink>
-          <NavLink 
-            to="/devices" 
-            className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
-          >
-            <Zap className="w-4 h-4" />
-            Devices
-          </NavLink>
+          {isAdmin && (
+            <NavLink 
+              to="/history" 
+              className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+            >
+              <Clock className="w-4 h-4" />
+              History
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink 
+              to="/users" 
+              className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+            >
+              <Users className="w-4 h-4" />
+              Users
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink 
+              to="/devices" 
+              className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+            >
+              <Zap className="w-4 h-4" />
+              Devices
+            </NavLink>
+          )}
+          {isAdmin && (
+            <NavLink
+              to="/device-access"
+              className={({ isActive }) => `${linkBase} ${isActive ? linkActive : linkIdle}`}
+            >
+              <ShieldCheck className="w-4 h-4" />
+              Device Access
+            </NavLink>
+          )}
         </div>
       </nav>
 

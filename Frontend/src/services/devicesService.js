@@ -1,12 +1,19 @@
+import { getToken } from "@/lib/auth";
+
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const devicesService = {
   // Haalt alle devices op en faalt zacht met een lege lijst.
   async getDevices() {
     try {
+      const token = getToken();
       const response = await fetch(`${API_BASE_URL}/devices`, {
         method: "GET",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+          ...(token ? { Authorization: `Bearer ${token}` } : {}),
+        },
       });
 
       if (!response.ok) {

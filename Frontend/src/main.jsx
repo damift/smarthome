@@ -13,9 +13,11 @@ import Routines from "@/pages/RoutinesPage";
 import History from "@/pages/HistoryPage";
 import Users from "@/pages/UsersManagementPage";
 import Devices from "@/pages/DeviceConfigPage";
+import DeviceAccess from "@/pages/DeviceAccessPage";
 
 import AppLayout from "@/layout/AppLayout";
 import ProtectedRoute from "@/components/ProtectedRoute";
+import AdminRoute from "@/components/AdminRoute";
 
 ReactDOM.createRoot(document.getElementById("root")).render(
   <React.StrictMode>
@@ -38,9 +40,38 @@ ReactDOM.createRoot(document.getElementById("root")).render(
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/rooms/:roomId" element={<RoomDetail />} />
           <Route path="/routines" element={<Routines />} />
-          <Route path="/history" element={<History />} />
-          <Route path="/users" element={<Users />} />
-          <Route path="/devices" element={<Devices />} />
+          <Route
+            path="/history"
+            element={
+              <AdminRoute>
+                <History />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/users"
+            element={
+              <AdminRoute>
+                <Users />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/devices"
+            element={
+              <AdminRoute>
+                <Devices />
+              </AdminRoute>
+            }
+          />
+          <Route
+            path="/device-access"
+            element={
+              <AdminRoute>
+                <DeviceAccess />
+              </AdminRoute>
+            }
+          />
         </Route>
 
         {/* fallback */}

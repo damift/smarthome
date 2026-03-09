@@ -8,12 +8,22 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
 use App\Models\Action;
 use App\Models\History;
+use Illuminate\Support\Str;
 
 class DeviceController extends Controller
 {
 public function index()
 {
-    $devices = Device::with(['type.actions', 'room'])->get();
+    $actor = auth('sanctum')->user();
+    $devicesQuery = Device::with(['type.actions', 'room']);
+
+    if ($actor && Str::lower((string) $actor->role) !== 'admin') {
+        $devicesQuery->whereHas('usersWithAccess', function ($query) use ($actor) {
+            $query->where('users.id', $actor->id);
+        });
+    }
+
+    $devices = $devicesQuery->get();
 
     $devices->each(function ($device) {
 
@@ -114,6 +124,18 @@ public function index()
 
 public function execute(Request $request, Device $device)
 {
+    $actor = $request->user();
+    if (!$actor) {
+        return response()->json(['message' => 'Unauthenticated.'], 401);
+    }
+
+    if (Str::lower((string) $actor->role) !== 'admin') {
+        $hasAccess = $device->usersWithAccess()->where('users.id', $actor->id)->exists();
+        if (!$hasAccess) {
+            return response()->json(['message' => 'Geen toegang tot dit device'], 403);
+        }
+    }
+
     $validated = $request->validate([
         'action_id' => 'required|exists:actions,id',
         'value'     => 'required',

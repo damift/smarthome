@@ -80,7 +80,7 @@ export default function DashboardPage() {
             deviceCount,
             activeDevices,
           };
-        });
+        }).filter((room) => room.deviceCount > 0);
 
         setRooms(merged);
         setError(null);
