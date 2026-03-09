@@ -1,17 +1,20 @@
-const API_BASE_URL = "http://localhost:8080/api";
+import { getToken } from "@/lib/auth";
+
+const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 
 function buildAuthHeaders() {
-  const token = localStorage.getItem("token");
+  const token = getToken();
 
   return {
     "Content-Type": "application/json",
+    Accept: "application/json",
     ...(token ? { Authorization: `Bearer ${token}` } : {}),
   };
 }
 
 export const routinesService = {
   async getRoutines() {
-    const response = await fetch(`${API_BASE_URL}/routines`, {
+    const response = await fetch(`${API_BASE}/api/routines`, {
       method: "GET",
       headers: buildAuthHeaders(),
     });
@@ -29,7 +32,7 @@ export const routinesService = {
   },
 
   async activateRoutine(routineId) {
-    const response = await fetch(`${API_BASE_URL}/routines/${routineId}/activate`, {
+    const response = await fetch(`${API_BASE}/api/routines/${routineId}/activate`, {
       method: "POST",
       headers: buildAuthHeaders(),
       body: JSON.stringify({}),

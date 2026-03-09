@@ -45,7 +45,5 @@ Route::post('/devices/{device}/execute', [DeviceController::class, 'execute'])->
     // routes/api.php
 Route::get('/logs', [HistoryController::class, 'index']);
 
-Route::middleware('auth:sanctum')->prefix('routines')->group(function () {
-    Route::get('/', [RoutineController::class, 'index']);
-    Route::post('/{routine}/activate', [RoutineController::class, 'activate']);
-});
+Route::get('/routines', [RoutineController::class, 'index']);
+Route::post('/routines/{routine}/activate', [RoutineController::class, 'activate']);

@@ -1,4 +1,4 @@
-d<?php
+<?php
 
 namespace App\Http\Controllers;
 
@@ -28,6 +28,7 @@ class RoutineController extends Controller
     public function activate(Request $request, $routine)
     {
         $routineModel = $this->findRoutine($routine);
+        $userId = $request->user()?->id;
 
         if (!$routineModel || !$routineModel->is_active) {
             return response()->json([
@@ -39,7 +40,7 @@ class RoutineController extends Controller
         $applied = [];
         $skipped = [];
 
-        DB::transaction(function () use ($steps, $routineModel, $request, &$applied, &$skipped) {
+        DB::transaction(function () use ($steps, $routineModel, $userId, &$applied, &$skipped) {
             foreach ($steps as $step) {
                 $actionName = strtoupper((string) ($step['action_name'] ?? $step['action'] ?? ''));
 
@@ -78,13 +79,15 @@ class RoutineController extends Controller
                     $nextState = $this->applyActionToState((array) $device->state, $actionName, $value);
                     $device->update(['state' => $nextState]);
 
-                    History::create([
-                        'user_id' => $request->user()?->id,
-                        'room_id' => $device->room_id,
-                        'device_id' => $device->id,
-                        'action_id' => $action->id,
-                        'value' => $value,
-                    ]);
+                    if ($userId) {
+                        History::create([
+                            'user_id' => $userId,
+                            'room_id' => $device->room_id,
+                            'device_id' => $device->id,
+                            'action_id' => $action->id,
+                            'value' => $value,
+                        ]);
+                    }
 
                     $applied[] = [
                         'device_id' => $device->id,
@@ -295,4 +298,3 @@ class RoutineController extends Controller
         return implode(', ', $parts);
     }
 }
-
