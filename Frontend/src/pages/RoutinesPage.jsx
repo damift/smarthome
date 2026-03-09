@@ -1,64 +1,73 @@
 import React from "react";
+import { Moon, MoonStar, Plane, Settings, Sun } from "lucide-react";
+import { toast } from "sonner";
 import RoutineCard from "@/components/RoutineCard";
+import { routinesService } from "@/services/routinesService";
+
+const ROUTINE_ICONS = {
+  SUN: Sun,
+  MOON: Moon,
+  NIGHT: MoonStar,
+  VACATION: Plane,
+};
+
+function normalizeRoutine(routine) {
+  return {
+    id: routine?.id ?? "",
+    title: routine?.title ?? "Routine",
+    description: routine?.description ?? "",
+    icon: routine?.icon ?? null,
+    changes: Array.isArray(routine?.changes) ? routine.changes : [],
+  };
+}
+
+function renderIcon(iconKey) {
+  const Icon = ROUTINE_ICONS[String(iconKey || "").toUpperCase()] || Settings;
+  return <Icon className="h-6 w-6" />;
+}
 
 export default function RoutinesPage() {
-  // Statische routines totdat backend-routine endpoints gekoppeld zijn.
-  const routines = [
-    {
-      id: 1,
-      title: "Workday",
-      description: "Optimize for a productive workday",
-      changes: [
-        "Living Room: Main Ceiling Light → ON (80%)",
-        "Living Room: Thermostat → 22°C",
-        "Kitchen: All Lights → ON",
-        "Entrance: Lock → LOCKED",
-      ],
-      icon: "☀️",
-    },
-    {
-      id: 2,
-      title: "Evening",
-      description: "Relax and wind down",
-      changes: [
-        "Living Room: Main Ceiling Light → ON (40%)",
-        "Living Room: Corner Lamp → ON (50%)",
-        "Living Room: Thermostat → 21°C",
-        "Bedroom: Dim Lights → 20%",
-        "Hall: Motion Sensors → OFF",
-      ],
-      icon: "🌙",
-    },
-    {
-      id: 3,
-      title: "Night",
-      description: "Secure the house for sleep",
-      changes: [
-        "All Lights → OFF",
-        "All Cameras → ON",
-        "All Locks → LOCKED",
-        "Thermostat → 18°C",
-      ],
-      icon: "🌑",
-    },
-    {
-      id: 4,
-      title: "Vacation",
-      description: "Secure home while away",
-      changes: [
-        "All Lights → OFF",
-        "All Cameras → ON",
-        "All Locks → LOCKED",
-        "Presence Simulation → ON",
-        "Alarm → ARMED",
-      ],
-      icon: "✈️",
-    },
-  ];
+  const [routines, setRoutines] = React.useState([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState(null);
+  const [activatingId, setActivatingId] = React.useState(null);
 
-  function handleActivate(routine) {
-    // placeholder: wire to API / real action later
-    alert(`Activated ${routine.title}`);
+  const fetchRoutines = React.useCallback(async () => {
+    try {
+      setLoading(true);
+      const data = await routinesService.getRoutines();
+      setRoutines(data.map(normalizeRoutine));
+      setError(null);
+    } catch (err) {
+      console.error("Failed to load routines:", err);
+      setError(err.message || "Failed to load routines");
+      setRoutines([]);
+    } finally {
+      setLoading(false);
+    }
+  }, []);
+
+  React.useEffect(() => {
+    fetchRoutines();
+  }, [fetchRoutines]);
+
+  async function handleActivate(routine) {
+    try {
+      setActivatingId(routine.id);
+      const result = await routinesService.activateRoutine(routine.id);
+      const appliedCount = Number(result?.applied_count || 0);
+
+      if (appliedCount > 0) {
+        toast.success(`${routine.title} activated (${appliedCount} changes)`);
+      } else {
+        toast(`${routine.title} activated, but no devices were changed`);
+      }
+    } catch (err) {
+      console.error("Failed to activate routine:", err);
+      toast.error(err.message || `Failed to activate ${routine.title}`);
+    } finally {
+      setActivatingId(null);
+    }
   }
 
   return (
@@ -66,18 +75,41 @@ export default function RoutinesPage() {
       <h1 className="text-2xl font-semibold">Routines</h1>
       <p className="text-zinc-400">Activate pre-configured device routines</p>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
-        {routines.map((r) => (
-          <RoutineCard
-            key={r.id}
-            title={r.title}
-            description={r.description}
-            changes={r.changes}
-            icon={<span className="text-2xl">{r.icon}</span>}
-            onActivate={() => handleActivate(r)}
-          />
-        ))}
-      </div>
+      {loading && (
+        <div className="rounded-md border p-4 text-sm text-zinc-500">
+          Loading routines...
+        </div>
+      )}
+
+      {error && (
+        <div className="rounded-md border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+          Failed to load routines: {error}
+        </div>
+      )}
+
+      {!loading && !error && routines.length === 0 && (
+        <div className="rounded-md border p-4 text-sm text-zinc-500">
+          No routines available.
+        </div>
+      )}
+
+      {!loading && !error && routines.length > 0 && (
+        <div className="grid grid-cols-1 gap-6 mt-4 md:grid-cols-2">
+          {routines.map((routine) => (
+            <RoutineCard
+              key={routine.id}
+              id={routine.id}
+              title={routine.title}
+              description={routine.description}
+              changes={routine.changes}
+              icon={renderIcon(routine.icon)}
+              activating={activatingId === routine.id}
+              onActivate={() => handleActivate(routine)}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
+

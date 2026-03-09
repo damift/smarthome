@@ -7,6 +7,7 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\RoomsController;
 use App\Http\Controllers\DeviceController;
 use App\Http\Controllers\HistoryController;
+use App\Http\Controllers\RoutineController;
 use App\Http\Controllers\TypeController;
 use App\Models\History;
 
@@ -43,3 +44,8 @@ Route::post('/devices/{device}/execute', [DeviceController::class, 'execute'])->
 
     // routes/api.php
 Route::get('/logs', [HistoryController::class, 'index']);
+
+Route::middleware('auth:sanctum')->prefix('routines')->group(function () {
+    Route::get('/', [RoutineController::class, 'index']);
+    Route::post('/{routine}/activate', [RoutineController::class, 'activate']);
+});
