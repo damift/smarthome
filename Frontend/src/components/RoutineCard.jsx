@@ -18,7 +18,9 @@ export default function RoutineCard({
   items = [],
   icon,
   onActivate,
+  onEdit,
   activating = false,
+  editing = false,
 }) {
   const displayTitle = title ?? name ?? "Routine";
   const displayItems = items.length ? items : changes;
@@ -56,14 +58,24 @@ export default function RoutineCard({
       <CardFooter className="w-full p-6 pt-0">
         <Button
           variant="default"
-          className="w-full"
+          className={onEdit ? "flex-1" : "w-full"}
           onClick={() => onActivate?.({ id, title: displayTitle })}
           disabled={activating}
         >
           {activating ? "Activating..." : "Activate Routine"}
         </Button>
+        {onEdit && (
+          <Button
+            type="button"
+            variant="outline"
+            className="ml-2 flex-1"
+            onClick={() => onEdit?.({ id, title: displayTitle })}
+            disabled={editing}
+          >
+            {editing ? "Opening..." : "Edit"}
+          </Button>
+        )}
       </CardFooter>
     </Card>
   );
 }
-

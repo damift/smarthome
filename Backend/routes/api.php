@@ -49,4 +49,9 @@ Route::put('/device-access/{userId}', [DeviceAccessController::class, 'update'])
 Route::get('/logs', [HistoryController::class, 'index']);
 
 Route::get('/routines', [RoutineController::class, 'index']);
-Route::post('/routines/{routine}/activate', [RoutineController::class, 'activate']);
+
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/routines/{routine}/activate', [RoutineController::class, 'activate']);
+    Route::post('/routines', [RoutineController::class, 'store']);
+    Route::put('/routines/{routine}', [RoutineController::class, 'update']);
+});

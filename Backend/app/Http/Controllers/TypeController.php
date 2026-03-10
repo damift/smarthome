@@ -9,7 +9,7 @@ class TypeController extends Controller
 {
     public function index(Request $request)
     {
-        $types = Type::all();
+        $types = Type::with('actions')->orderBy('name')->get();
         return response()->json($types);
     }
 
@@ -31,7 +31,7 @@ class TypeController extends Controller
 
     public function show($id)
     {
-        $type = Type::find($id);
+        $type = Type::with('actions')->find($id);
 
         if (!$type) {
             return response()->json(['message' => 'Type not found'], 404);
