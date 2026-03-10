@@ -16,6 +16,7 @@ import {
 } from "@/components/shadcn/dialog";
 import { Input } from "@/components/shadcn/input";
 import { Label } from "@/components/shadcn/label";
+import LoadingState from "@/components/ui/LoadingState";
 
 const ROUTINE_ICONS = {
   SUN: Sun,
@@ -598,9 +599,7 @@ export default function RoutinesPage() {
       </div>
 
       {loading && (
-        <div className="rounded-md border p-4 text-sm text-zinc-500">
-          Loading routines...
-        </div>
+        <LoadingState message="Loading routines..." />
       )}
 
       {error && (
@@ -730,7 +729,7 @@ export default function RoutinesPage() {
               </div>
 
               {loadingFormOptions && (
-                <p className="text-sm text-zinc-500">Loading dropdown options...</p>
+                <LoadingState message="Loading dropdown options..." />
               )}
 
               {form.steps.map((step, index) => {

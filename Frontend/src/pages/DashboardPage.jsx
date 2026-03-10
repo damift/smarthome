@@ -3,6 +3,7 @@ import RoomSidebar from "../components/RoomSidebar";
 import HouseLayout from "../components/HouseLayout";
 import { roomsService } from "../services/roomsService";
 import { devicesService } from "../services/devicesService";
+import LoadingState from "@/components/ui/LoadingState";
 
 export default function DashboardPage() {
   const [rooms, setRooms] = useState([]);
@@ -100,11 +101,7 @@ export default function DashboardPage() {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-zinc-50">
-        <p className="text-zinc-600">Loading rooms...</p>
-      </div>
-    );
+    return <LoadingState variant="page" fullScreen message="Loading rooms..." />;
   }
 
   if (error) {

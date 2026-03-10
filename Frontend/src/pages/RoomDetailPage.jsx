@@ -4,6 +4,7 @@ import { ChevronLeft, Lightbulb, Thermometer, Lock, Camera, Radio } from "lucide
 import { devicesService } from "@/services/devicesService";
 import { roomsService } from "@/services/roomsService";
 import { toast } from "sonner";
+import LoadingState from "@/components/ui/LoadingState";
 
 // Power-actions gebruiken we ook voor statusbadges (ON/OFF).
 const POWER_ACTIONS = new Set(["TURN_ON", "TURN_OFF"]);
@@ -308,11 +309,7 @@ export default function RoomDetailPage() {
   };
 
   if (loading) {
-    return (
-      <div className="w-full min-h-screen bg-white p-6 flex items-center justify-center">
-        <p className="text-zinc-500">Loading room details...</p>
-      </div>
-    );
+    return <LoadingState variant="page" fullScreen message="Loading room details..." />;
   }
 
   if (error) {

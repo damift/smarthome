@@ -21,6 +21,7 @@ import {
   updateUserPassword as apiUpdateUserPassword,
 } from "@/services/users";
 import { toast } from "sonner";
+import LoadingState from "@/components/ui/LoadingState";
 
 function normalizeRole(role) {
   const value = String(role ?? "user").trim().toLowerCase();
@@ -482,9 +483,7 @@ export default function UsersManagementPage() {
       </div>
 
       {loadingUsers ? (
-        <div className="rounded-md border p-4 text-sm text-zinc-500">
-          Users laden...
-        </div>
+        <LoadingState message="Loading users..." />
       ) : (
         <UserList
           users={users}

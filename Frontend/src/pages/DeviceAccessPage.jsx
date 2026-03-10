@@ -2,6 +2,7 @@ import React from "react";
 import { toast } from "sonner";
 import { deviceAccessService } from "@/services/deviceAccessService";
 import { logout } from "@/lib/auth";
+import LoadingState from "@/components/ui/LoadingState";
 
 function toNumberArray(value) {
   if (!Array.isArray(value)) return [];
@@ -128,7 +129,7 @@ export default function DeviceAccessPage() {
   }
 
   if (loading) {
-    return <div className="rounded-md border p-4 text-sm text-zinc-500">Loading access data...</div>;
+    return <LoadingState message="Loading access data..." />;
   }
 
   if (error) {

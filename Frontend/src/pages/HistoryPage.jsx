@@ -3,6 +3,7 @@ import HistoryFilters from "@/components/HistoryFilters";
 import ExportButtons from "@/components/ExportButtons";
 import HistoryTable from "@/components/HistoryTable";
 import { historyService } from "@/services/historyService";
+import LoadingState from "@/components/ui/LoadingState";
 
 export default function HistoryPage() {
   const [items, setItems] = useState([]);
@@ -39,9 +40,7 @@ export default function HistoryPage() {
       </div>
 
       {loading && (
-        <div className="flex items-center justify-center p-8">
-          <p className="text-zinc-600">Loading history...</p>
-        </div>
+        <LoadingState message="Loading history..." />
       )}
 
       {error && (

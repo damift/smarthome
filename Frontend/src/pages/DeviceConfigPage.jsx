@@ -17,6 +17,7 @@ import { devicesService } from "../services/devicesService";
 import { toast } from "sonner";
 import { roomsService } from "../services/roomsService";
 import { typesService } from "../services/typesService";
+import LoadingState from "@/components/ui/LoadingState";
 
 export default function DeviceConfigPage() {
   const [devices, setDevices] = useState([]);
@@ -190,11 +191,7 @@ export default function DeviceConfigPage() {
   }
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-zinc-50">
-        <p className="text-zinc-600">Loading devices...</p>
-      </div>
-    );
+    return <LoadingState variant="page" fullScreen message="Loading devices..." />;
   }
 
   if (error) {
