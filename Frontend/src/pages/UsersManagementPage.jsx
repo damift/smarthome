@@ -1,4 +1,5 @@
 import React from "react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/shadcn/button";
 import {
   Dialog,
@@ -22,6 +23,7 @@ import {
 } from "@/services/users";
 import { toast } from "sonner";
 import LoadingState from "@/components/ui/LoadingState";
+import { getUser, logout } from "@/lib/auth";
 
 function normalizeRole(role) {
   const value = String(role ?? "user").trim().toLowerCase();
@@ -48,6 +50,10 @@ function normalizeUsersResponse(data) {
 }
 
 export default function UsersManagementPage() {
+  const navigate = useNavigate();
+  const authUser = getUser();
+  const authUserId = authUser?.id;
+
   const [users, setUsers] = React.useState([]);
   const [open, setOpen] = React.useState(false);
 
@@ -114,6 +120,12 @@ export default function UsersManagementPage() {
     try {
       await apiAssignRole(id, normalizedNewRole); // <-- altijd lowercase naar backend
       toast.success(`Role gewijzigd naar ${normalizedNewRole}`);
+
+      if (String(id) === String(authUserId)) {
+        toast("Je eigen rol is gewijzigd. Log opnieuw in.");
+        logout();
+        navigate("/login", { replace: true });
+      }
     } catch (err) {
       console.error("Failed to assign role:", err);
 

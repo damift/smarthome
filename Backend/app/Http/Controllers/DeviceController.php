@@ -33,6 +33,7 @@ public function index()
         // Convert relations to simple values
         $device->type = $device->type?->name;
         $device->room = $device->room?->name;
+        $device->status = $this->deriveStatusFromState((array) $device->state);
     });
 
     return response()->json($devices);
@@ -50,12 +51,18 @@ public function index()
             'name' => $request->name,
             'type_id' => $request->type_id,
             'room_id' => $request->room_id,
-            'status' => $request->status,
         ]);
 
+        $status = strtoupper((string) $request->input('status', 'OFF'));
+        $nextState = $this->applyRequestedStatusToState((array) $device->state, $status);
+        $device->update(['state' => $nextState]);
+        $device->refresh();
+
         // load relation and convert to string for response
-        $device->load('type');
+        $device->load(['type', 'room']);
         $device->type = $device->type?->name;
+        $device->room = $device->room?->name;
+        $device->status = $this->deriveStatusFromState((array) $device->state);
 
         return response()->json([
             'message' => 'Device created successfully',
@@ -74,6 +81,7 @@ public function index()
         // convert relations to names
         $device->type = $device->type?->name;
         $device->room = $device->room?->name;
+        $device->status = $this->deriveStatusFromState((array) $device->state);
 
         return response()->json($device);
     }
@@ -93,11 +101,21 @@ public function index()
             'status' => 'sometimes|required|string|in:ON,OFF',
         ]);
 
-        $device->update($request->only(['name', 'type_id', 'room_id', 'status', ]));
+        $device->update($request->only(['name', 'type_id', 'room_id']));
+
+        if ($request->filled('status')) {
+            $status = strtoupper((string) $request->input('status'));
+            $nextState = $this->applyRequestedStatusToState((array) $device->state, $status);
+            $device->update(['state' => $nextState]);
+        }
+
+        $device->refresh();
 
         // reload relationship
-        $device->load('type');
+        $device->load(['type', 'room']);
         $device->type = $device->type?->name;
+        $device->room = $device->room?->name;
+        $device->status = $this->deriveStatusFromState((array) $device->state);
 
         return response()->json([
             'message' => 'Device updated successfully',
@@ -120,7 +138,28 @@ public function index()
         ]);
     }
 
-    
+    private function deriveStatusFromState(array $state): string
+    {
+        if (($state['TURN_ON'] ?? null) === true && ($state['TURN_OFF'] ?? null) !== true) {
+            return 'ON';
+        }
+
+        if (($state['TURN_OFF'] ?? null) === true && ($state['TURN_ON'] ?? null) !== true) {
+            return 'OFF';
+        }
+
+        return ($state['TURN_ON'] ?? false) ? 'ON' : 'OFF';
+    }
+
+    private function applyRequestedStatusToState(array $state, string $status): array
+    {
+        $isOn = strtoupper($status) === 'ON';
+        $state['TURN_ON'] = $isOn;
+        $state['TURN_OFF'] = !$isOn;
+
+        return $state;
+    }
+
 
 public function execute(Request $request, Device $device)
 {

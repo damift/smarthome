@@ -124,7 +124,13 @@ class RoutineController extends Controller
     public function activate(Request $request, $routine)
     {
         $routineModel = $this->findRoutine($routine);
-        $userId = $request->user()?->id;
+        $user = $request->user();
+        if (!$user) {
+            return response()->json([
+                'message' => 'Unauthenticated',
+            ], 401);
+        }
+        $userId = (int) $user->id;
 
         if (!$routineModel || !$routineModel->is_active) {
             return response()->json([
@@ -175,15 +181,13 @@ class RoutineController extends Controller
                     $nextState = $this->applyActionToState((array) $device->state, $actionName, $value);
                     $device->update(['state' => $nextState]);
 
-                    if ($userId) {
-                        History::create([
-                            'user_id' => $userId,
-                            'room_id' => $device->room_id,
-                            'device_id' => $device->id,
-                            'action_id' => $action->id,
-                            'value' => $value,
-                        ]);
-                    }
+                    History::create([
+                        'user_id' => $userId,
+                        'room_id' => $device->room_id,
+                        'device_id' => $device->id,
+                        'action_id' => $action->id,
+                        'value' => $value,
+                    ]);
 
                     $applied[] = [
                         'device_id' => $device->id,

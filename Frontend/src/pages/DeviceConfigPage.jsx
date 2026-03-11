@@ -19,6 +19,19 @@ import { roomsService } from "../services/roomsService";
 import { typesService } from "../services/typesService";
 import LoadingState from "@/components/ui/LoadingState";
 
+function resolveDeviceStatus(device) {
+  const explicitStatus = String(device?.status ?? "").toUpperCase();
+  if (explicitStatus === "ON" || explicitStatus === "OFF") return explicitStatus;
+
+  const state = typeof device?.state === "object" && device.state !== null ? device.state : {};
+  const turnOn = Boolean(state.TURN_ON);
+  const turnOff = Boolean(state.TURN_OFF);
+
+  if (turnOn && !turnOff) return "ON";
+  if (turnOff && !turnOn) return "OFF";
+  return turnOn ? "ON" : "OFF";
+}
+
 export default function DeviceConfigPage() {
   const [devices, setDevices] = useState([]);
   const [rooms, setRooms] = useState([]);
@@ -53,6 +66,7 @@ export default function DeviceConfigPage() {
           ...device,
           room: room?.name || "Unknown Room",
           type: typeObj?.name || device.type || "",
+          status: resolveDeviceStatus(device),
         };
       });
       setDevices(enrichedDevices);
@@ -99,7 +113,7 @@ export default function DeviceConfigPage() {
         name: device.name,
         type_id: device.type_id,
         room_id: device.room_id.toString(),
-        status: device.status,
+        status: resolveDeviceStatus(device),
       });
       setEditOpen(true);
     }
@@ -130,6 +144,7 @@ export default function DeviceConfigPage() {
         ...response.device,
         room: room?.name || "Unknown Room",
         type: typeObj?.name || response.device.type || "",
+        status: resolveDeviceStatus(response.device),
       };
       
       setDevices((d) =>
@@ -174,6 +189,7 @@ export default function DeviceConfigPage() {
         ...response.device,
         room: room?.name || "Unknown Room",
         type: typeObj?.name || response.device.type || "",
+        status: resolveDeviceStatus(response.device),
       };
       
       setDevices((d) => [...d, enrichedDevice]);
@@ -263,6 +279,17 @@ export default function DeviceConfigPage() {
                     ))}
                   </select>
                 </div>
+                <div>
+                  <Label>Status</Label>
+                  <select
+                    className="mt-1 w-full rounded-md border px-3 py-2"
+                    value={form.status}
+                    onChange={(e) => setForm((f) => ({ ...f, status: e.target.value }))}
+                  >
+                    <option value="OFF">OFF</option>
+                    <option value="ON">ON</option>
+                  </select>
+                </div>
 
                 <DialogFooter className="pt-2">
                   <DialogClose asChild>
@@ -331,6 +358,17 @@ export default function DeviceConfigPage() {
                     {room.name}
                   </option>
                 ))}
+              </select>
+            </div>
+            <div>
+              <Label>Status</Label>
+              <select
+                className="mt-1 w-full rounded-md border px-3 py-2"
+                value={editForm.status}
+                onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value }))}
+              >
+                <option value="OFF">OFF</option>
+                <option value="ON">ON</option>
               </select>
             </div>
 

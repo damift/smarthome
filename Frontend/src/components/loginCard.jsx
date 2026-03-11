@@ -53,7 +53,7 @@ export default function LoginCard({
             <Input
               id="password"
               type="password"
-              placeholder="••••••••"
+              placeholder="Password"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               className="h-14 rounded-lg border-2 border-black bg-gray-100 px-5 text-base placeholder:text-gray-500 focus-visible:ring-0 focus-visible:ring-offset-0"
