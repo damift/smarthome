@@ -51,43 +51,5 @@ export const routinesService = {
 
     return data;
   },
-
-  // Maakt een nieuwe routine aan.
-  async createRoutine(payload) {
-    const response = await fetch(`${API_BASE}/api/routines`, {
-      method: "POST",
-      headers: buildAuthHeaders(),
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(
-        data.message || `Failed to create routine: ${response.statusText}`,
-      );
-    }
-
-    return data;
-  },
-
-  // Past een bestaande routine aan.
-  async updateRoutine(routineId, payload) {
-    const response = await fetch(`${API_BASE}/api/routines/${routineId}`, {
-      method: "PUT",
-      headers: buildAuthHeaders(),
-      body: JSON.stringify(payload),
-    });
-
-    const data = await response.json().catch(() => ({}));
-
-    if (!response.ok) {
-      throw new Error(
-        data.message || `Failed to update routine: ${response.statusText}`,
-      );
-    }
-
-    return data;
-  },
 };
 

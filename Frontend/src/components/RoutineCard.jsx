@@ -9,7 +9,7 @@ import {
 } from "@/components/shadcn/card";
 import { Button } from "@/components/shadcn/button";
 
-// Kaart met routine-info, samenvatting en acties (activate/edit).
+// Kaart met routine-info, samenvatting en activate-actie.
 export default function RoutineCard({
   id,
   title,
@@ -19,9 +19,7 @@ export default function RoutineCard({
   items = [],
   icon,
   onActivate,
-  onEdit,
   activating = false,
-  editing = false,
 }) {
   const displayTitle = title ?? name ?? "Routine";
   const displayItems = items.length ? items : changes;
@@ -59,26 +57,15 @@ export default function RoutineCard({
       </CardContent>
 
       <CardFooter className="w-full p-6 pt-0">
-        {/* Actieknoppen roepen callbacks uit de parent op. */}
+        {/* Activate roept callback uit de parent op. */}
         <Button
           variant="default"
-          className={onEdit ? "flex-1" : "w-full"}
+          className="w-full"
           onClick={() => onActivate?.({ id, title: displayTitle })}
           disabled={activating}
         >
           {activating ? "Activating..." : "Activate Routine"}
         </Button>
-        {onEdit && (
-          <Button
-            type="button"
-            variant="outline"
-            className="ml-2 flex-1"
-            onClick={() => onEdit?.({ id, title: displayTitle })}
-            disabled={editing}
-          >
-            {editing ? "Opening..." : "Edit"}
-          </Button>
-        )}
       </CardFooter>
     </Card>
   );

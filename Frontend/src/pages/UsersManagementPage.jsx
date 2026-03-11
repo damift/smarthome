@@ -30,7 +30,7 @@ function normalizeRole(role) {
   return value === "admin" ? "admin" : "user";
 }
 
-// Vangt meerdere backend response-vormen af en normaliseert ze naar 1 users-array.
+// De backend levert niet overal exact dezelfde shape; hier maken we 1 voorspelbaar frontend-model van.
 function normalizeUsersResponse(data) {
   let list = [];
 
@@ -44,7 +44,8 @@ function normalizeUsersResponse(data) {
     id: u.id ?? u.user_id ?? u.email,
     name: u.name ?? u.full_name ?? "",
     email: u.email ?? "",
-    role: normalizeRole(u.role), // <-- altijd lowercase opslaan in frontend state
+    // Role altijd lowercase houden voorkomt mismatches in select-values en API payloads.
+    role: normalizeRole(u.role),
     status: u.status ?? "ACTIVE",
   }));
 }
@@ -52,6 +53,7 @@ function normalizeUsersResponse(data) {
 export default function UsersManagementPage() {
   const navigate = useNavigate();
   const authUser = getUser();
+  // Nodig om direct uit te loggen wanneer iemand zijn eigen rechten wijzigt.
   const authUserId = authUser?.id;
 
   const [users, setUsers] = React.useState([]);
@@ -60,7 +62,8 @@ export default function UsersManagementPage() {
   const [form, setForm] = React.useState({
     name: "",
     email: "",
-    role: "user", // lowercase
+    // Standaard "user" voorkomt dat je per ongeluk admin-accounts aanmaakt.
+    role: "user",
     password: "",
     password_confirmation: "",
   });
@@ -83,7 +86,7 @@ export default function UsersManagementPage() {
   const [formErrors, setFormErrors] = React.useState({});
   const [submitError, setSubmitError] = React.useState(null);
 
-  // Centrale loader die hergebruikt wordt na create/update acties.
+  // Centrale loader zodat create/update/delete altijd dezelfde refresh-logica gebruiken.
   const loadUsers = React.useCallback(async () => {
     setLoadingUsers(true);
     try {
@@ -111,17 +114,19 @@ export default function UsersManagementPage() {
     if (!currentUser) return;
     if (previousRole === normalizedNewRole) return;
 
-    // Optimistic update: UI toont de nieuwe rol meteen.
+    // Optimistic update maakt de UI direct responsief, ook als netwerk even traag is.
     setUsers((prev) =>
       prev.map((u) => (u.id === id ? { ...u, role: normalizedNewRole } : u))
     );
     setUpdatingRoleId(id);
 
     try {
-      await apiAssignRole(id, normalizedNewRole); // <-- altijd lowercase naar backend
+      // Altijd genormaliseerd doorsturen voorkomt "Admin" vs "admin" bugs.
+      await apiAssignRole(id, normalizedNewRole);
       toast.success(`Role gewijzigd naar ${normalizedNewRole}`);
 
       if (String(id) === String(authUserId)) {
+        // Je eigen rol veranderen kan direct je permissies invalid maken, dus opnieuw inloggen.
         toast("Je eigen rol is gewijzigd. Log opnieuw in.");
         logout();
         navigate("/login", { replace: true });
@@ -129,7 +134,7 @@ export default function UsersManagementPage() {
     } catch (err) {
       console.error("Failed to assign role:", err);
 
-      // Fallback bij fout: zet de vorige rol direct terug.
+      // Mislukte save? Dan rollbacken we meteen zodat scherm en database niet uit sync raken.
       setUsers((prev) =>
         prev.map((u) => (u.id === id ? { ...u, role: previousRole } : u))
       );
@@ -165,6 +170,7 @@ export default function UsersManagementPage() {
   }
 
   function validatePasswordForm() {
+    // Frontend-validatie geeft snellere feedback dan wachten op backend-response.
     const errors = {};
 
     if (!passwordForm.password) {
@@ -234,7 +240,7 @@ export default function UsersManagementPage() {
     setForm({
       name: "",
       email: "",
-      role: "user", // lowercase
+      role: "user",
       password: "",
       password_confirmation: "",
     });
@@ -242,7 +248,7 @@ export default function UsersManagementPage() {
   }
 
   function validateForm() {
-    // Houdt frontend validatie dicht bij de formstate voor snelle feedback.
+    // Houdt frontend-validatie dicht bij formstate voor snelle feedback tijdens typen.
     const errors = {};
 
     if (!form.name.trim()) {

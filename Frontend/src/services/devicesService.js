@@ -3,7 +3,7 @@ import { getToken } from "@/lib/auth";
 const API_BASE_URL = "http://localhost:8080/api";
 
 export const devicesService = {
-  // Haalt alle devices op en faalt zacht met een lege lijst.
+  // De dashboard-flow moet altijd blijven renderen; daarom geven we bij fouten een lege lijst terug.
   async getDevices() {
     try {
       const token = getToken();
@@ -20,6 +20,7 @@ export const devicesService = {
         console.warn(
           `devicesService: response not ok ${response.status} ${response.statusText}`,
         );
+        // Soft-fail: hiermee voorkomen we dat 1 endpoint-fout de hele pagina breekt.
         return [];
       }
 
@@ -27,11 +28,12 @@ export const devicesService = {
       return data;
     } catch (error) {
       console.warn("devicesService: error fetching devices:", error);
-      // Return empty list as a graceful fallback so the UI stays usable
+      // Extra vangnet voor netwerkfouten tijdens initial load.
       return [];
     }
   },
 
+  // Detailpagina's verwachten harde fouten, daarom gooien we hier wel een error.
   async getDeviceById(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/devices/${id}`, {
@@ -62,7 +64,7 @@ export const devicesService = {
       const data = await response.json();
 
       if (!response.ok) {
-        // Check if error response has validation messages
+        // Validatiefouten geven we door als platte tekst zodat forms ze direct kunnen tonen.
         if (data.errors) {
           const errorMessages = Object.values(data.errors).flat().join(", ");
           throw new Error(errorMessages);
@@ -90,7 +92,7 @@ export const devicesService = {
       const data = await response.json();
 
       if (!response.ok) {
-        // Check if error response has validation messages
+        // Zelfde foutafhandeling als create voor consistente UX in beheerformulieren.
         if (data.errors) {
           const errorMessages = Object.values(data.errors).flat().join(", ");
           throw new Error(errorMessages);
@@ -145,6 +147,7 @@ export const devicesService = {
       const data = await response.json().catch(() => ({}));
 
       if (!response.ok) {
+        // Sommige endpoints sturen `error`, andere `message`; we ondersteunen beide vormen.
         throw new Error(
           data.error ||
             data.message ||
@@ -159,7 +162,7 @@ export const devicesService = {
     }
   },
 
-  // Legacy toggle endpoint; alleen gebruiken als execute-flow niet beschikbaar is.
+  // Legacy fallback voor oude flows; nieuwe UI gebruikt `executeDeviceAction`.
   async toggleDevice(id) {
     try {
       const response = await fetch(`${API_BASE_URL}/devices/${id}/toggle`, {

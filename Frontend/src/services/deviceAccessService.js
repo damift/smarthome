@@ -2,7 +2,7 @@ import { getToken } from "@/lib/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 
-// Bouwt auth-headers op voor protected device-access endpoints.
+// We bouwen headers op 1 plek zodat alle requests dezelfde auth/json-contracten gebruiken.
 function buildHeaders() {
   const token = getToken();
 
@@ -13,7 +13,7 @@ function buildHeaders() {
   };
 }
 
-// Centrale response parser met nette foutmeldingen per statuscode.
+// Centrale response parser vertaalt technische statuscodes naar bruikbare UI-fouten.
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
 
@@ -34,10 +34,11 @@ async function parseResponse(response) {
 }
 
 export const deviceAccessService = {
-  // Laadt users, devices en huidige toegangsmapping.
+  // 1 overzicht-call houdt de beheerpagina consistent: users, devices en koppelingen in sync.
   async getOverview() {
     const token = getToken();
     if (!token) {
+      // Zonder token direct stoppen voorkomt een nutteloze call en geeft een duidelijkere melding.
       const error = new Error("Je sessie is verlopen. Log opnieuw in.");
       error.status = 401;
       throw error;
@@ -58,7 +59,8 @@ export const deviceAccessService = {
     return parseResponse(response);
   },
 
-  // Slaat geselecteerde device-toegang op voor één gebruiker.
+  // Slaat geselecteerde device-toegang op voor een gebruiker als complete set.
+  // Zo verwijderen we impliciet oude rechten die niet meer aangevinkt zijn.
   async updateUserAccess(userId, deviceIds) {
     const token = getToken();
     if (!token) {

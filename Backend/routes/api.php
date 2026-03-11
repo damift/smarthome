@@ -52,6 +52,4 @@ Route::get('/routines', [RoutineController::class, 'index']);
 
 Route::middleware('auth:sanctum')->group(function () {
     Route::post('/routines/{routine}/activate', [RoutineController::class, 'activate']);
-    Route::post('/routines', [RoutineController::class, 'store']);
-    Route::put('/routines/{routine}', [RoutineController::class, 'update']);
 });
