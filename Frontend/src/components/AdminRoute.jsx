@@ -1,10 +1,12 @@
 import { Navigate } from "react-router-dom";
 import { getUser, isLoggedIn } from "@/lib/auth";
 
+// Controleert of een user adminrechten heeft.
 function isAdmin(user) {
   return String(user?.role ?? "").trim().toLowerCase() === "admin";
 }
 
+// Route-guard die alleen admins toegang geeft tot children.
 export default function AdminRoute({ children }) {
   if (!isLoggedIn()) return <Navigate to="/login" replace />;
 

@@ -10,6 +10,7 @@ import {
   Thermometer,
 } from "lucide-react";
 
+// Koppelt een device-type aan een passend dashboard-icoon.
 function getDeviceIcon(type) {
   const value = String(type ?? "").toUpperCase();
 
@@ -31,11 +32,13 @@ export default function RoomCard({
 }) {
   return (
     <div className="rounded border border-black bg-white p-6">
+      {/* Kamernaam + vaste home-indicator. */}
       <div className="mb-4 flex items-start justify-between">
         <h2 className="text-lg font-semibold text-black">{name}</h2>
         <Home className="h-6 w-6 text-black" strokeWidth={2.5} />
       </div>
 
+      {/* Samenvatting van devices in deze kamer. */}
       <p className="mb-4 text-sm text-zinc-700">{deviceCount} devices</p>
 
       <div className="mb-6 border-b border-zinc-300 pb-4">
@@ -44,6 +47,7 @@ export default function RoomCard({
         </p>
       </div>
 
+      {/* Kleine icon-strip met actieve/inactieve style. */}
       <div className="mb-6 flex gap-2">
         {devices.map((device, index) => {
           const Icon = getDeviceIcon(device.type);
@@ -64,6 +68,7 @@ export default function RoomCard({
         })}
       </div>
 
+      {/* Navigatie naar de detailpagina van de kamer. */}
       <Link
         to={`/rooms/${encodeURIComponent(name)}`}
         className="inline-flex items-center gap-1 text-sm font-medium text-blue-600 transition-colors hover:text-blue-800"

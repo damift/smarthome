@@ -2,6 +2,7 @@ import { getToken } from "@/lib/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 
+// Standaard headers voor routine-calls (met bearer token indien aanwezig).
 function buildAuthHeaders() {
   const token = getToken();
 
@@ -13,6 +14,7 @@ function buildAuthHeaders() {
 }
 
 export const routinesService = {
+  // Haalt alle routines op voor de routinespagina.
   async getRoutines() {
     const response = await fetch(`${API_BASE}/api/routines`, {
       method: "GET",
@@ -31,6 +33,7 @@ export const routinesService = {
     return data;
   },
 
+  // Activeert een routine op de backend.
   async activateRoutine(routineId) {
     const response = await fetch(`${API_BASE}/api/routines/${routineId}/activate`, {
       method: "POST",
@@ -49,6 +52,7 @@ export const routinesService = {
     return data;
   },
 
+  // Maakt een nieuwe routine aan.
   async createRoutine(payload) {
     const response = await fetch(`${API_BASE}/api/routines`, {
       method: "POST",
@@ -67,6 +71,7 @@ export const routinesService = {
     return data;
   },
 
+  // Past een bestaande routine aan.
   async updateRoutine(routineId, payload) {
     const response = await fetch(`${API_BASE}/api/routines/${routineId}`, {
       method: "PUT",

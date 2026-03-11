@@ -1,11 +1,12 @@
 import React from "react";
 import { Button } from "@/components/shadcn/button";
 
+// Tabelweergave voor devicebeheer (edit/delete vanuit parent).
 export default function DeviceList({ devices = [], onEdit, onDelete }) {
   return (
     <div className="overflow-x-auto border border-zinc-900 rounded-lg">
       <table className="min-w-full table-fixed">
-        {/* Overzicht van alle devices met snelle beheeracties. */}
+        {/* Kolommen voor naam, context en beheeracties. */}
         <thead>
           <tr className="bg-white">
             <th className="text-left px-6 py-3">Device Name</th>
@@ -16,7 +17,7 @@ export default function DeviceList({ devices = [], onEdit, onDelete }) {
           </tr>
         </thead>
         <tbody>
-          {/* Elke rij triggert callbacks in de parent voor edit/delete. */}
+          {/* Elke rij gebruikt callbacks van de parent om acties uit te voeren. */}
           {devices.map((d) => (
             <tr key={d.id} className="border-t">
               <td className="px-6 py-4 flex items-center gap-3">

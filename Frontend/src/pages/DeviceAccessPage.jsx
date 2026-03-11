@@ -4,6 +4,7 @@ import { deviceAccessService } from "@/services/deviceAccessService";
 import { logout } from "@/lib/auth";
 import LoadingState from "@/components/ui/LoadingState";
 
+// Zet input om naar schone lijst van geldige numerieke device-ids.
 function toNumberArray(value) {
   if (!Array.isArray(value)) return [];
   return value
@@ -27,6 +28,7 @@ export default function DeviceAccessPage() {
   );
 
   React.useEffect(() => {
+    // Laadt initiële data en kiest standaard de eerste user.
     async function loadData() {
       try {
         setLoading(true);
@@ -72,6 +74,7 @@ export default function DeviceAccessPage() {
   }, []);
 
   React.useEffect(() => {
+    // Houdt de checkbox-selectie synchroon met de gekozen gebruiker.
     if (!selectedUserId) {
       setSelectedDeviceIds(new Set());
       return;
@@ -82,6 +85,7 @@ export default function DeviceAccessPage() {
   }, [selectedUserId, userDeviceMap]);
 
   function toggleDevice(deviceId) {
+    // Toggle één device-id in de lokale selectie.
     setSelectedDeviceIds((prev) => {
       const next = new Set(prev);
       if (next.has(deviceId)) next.delete(deviceId);
@@ -91,14 +95,17 @@ export default function DeviceAccessPage() {
   }
 
   function selectAllDevices() {
+    // Selecteert alle zichtbare devices voor de huidige user.
     setSelectedDeviceIds(new Set(devices.map((device) => Number(device.id))));
   }
 
   function clearAllDevices() {
+    // Maakt de huidige selectie leeg.
     setSelectedDeviceIds(new Set());
   }
 
   async function saveAccess() {
+    // Persist selected ids naar backend en update lokale mapping.
     if (!selectedUserId) return;
 
     try {

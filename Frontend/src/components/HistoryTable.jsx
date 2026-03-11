@@ -1,5 +1,6 @@
 import React from "react";
 
+// Formatteert ruwe timestamps naar leesbare datum+tijd in de UI.
 function formatTime(ts) {
   if (!ts) return "-";
 
@@ -12,6 +13,7 @@ function formatTime(ts) {
   }
 }
 
+// Maakt verschillende datatypes veilig toonbaar in één tabelcel.
 function formatCell(value) {
   if (value === null || value === undefined || value === "") return "-";
 
@@ -35,6 +37,7 @@ function formatCell(value) {
   return "-";
 }
 
+// Basistabel met history records voor de historypagina.
 export default function HistoryTable({ items = [] }) {
   return (
     <div className="border rounded-md overflow-hidden bg-white">

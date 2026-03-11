@@ -9,6 +9,7 @@ import {
 } from "@/components/shadcn/card";
 import { Button } from "@/components/shadcn/button";
 
+// Kaart met routine-info, samenvatting en acties (activate/edit).
 export default function RoutineCard({
   id,
   title,
@@ -27,6 +28,7 @@ export default function RoutineCard({
 
   return (
     <Card className="border-zinc-900">
+      {/* Titelgedeelte met icoon en beschrijving. */}
       <CardHeader className="flex items-start gap-4 p-6">
         <div className="flex h-12 w-12 flex-shrink-0 items-center justify-center rounded-md border border-zinc-300">
           {icon ?? <span className="text-xl">R</span>}
@@ -38,6 +40,7 @@ export default function RoutineCard({
       </CardHeader>
 
       <CardContent>
+        {/* Laat maximaal 3 changes direct zien, rest als samenvatting. */}
         <div className="border-t border-zinc-200 pt-4">
           <div className="mb-2 text-xs font-semibold text-zinc-500">
             CHANGES ({displayItems.length})
@@ -56,6 +59,7 @@ export default function RoutineCard({
       </CardContent>
 
       <CardFooter className="w-full p-6 pt-0">
+        {/* Actieknoppen roepen callbacks uit de parent op. */}
         <Button
           variant="default"
           className={onEdit ? "flex-1" : "w-full"}

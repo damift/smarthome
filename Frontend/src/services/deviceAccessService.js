@@ -2,6 +2,7 @@ import { getToken } from "@/lib/auth";
 
 const API_BASE = import.meta.env.VITE_API_BASE ?? "http://localhost:8080";
 
+// Bouwt auth-headers op voor protected device-access endpoints.
 function buildHeaders() {
   const token = getToken();
 
@@ -12,6 +13,7 @@ function buildHeaders() {
   };
 }
 
+// Centrale response parser met nette foutmeldingen per statuscode.
 async function parseResponse(response) {
   const data = await response.json().catch(() => ({}));
 
@@ -32,6 +34,7 @@ async function parseResponse(response) {
 }
 
 export const deviceAccessService = {
+  // Laadt users, devices en huidige toegangsmapping.
   async getOverview() {
     const token = getToken();
     if (!token) {
@@ -55,6 +58,7 @@ export const deviceAccessService = {
     return parseResponse(response);
   },
 
+  // Slaat geselecteerde device-toegang op voor één gebruiker.
   async updateUserAccess(userId, deviceIds) {
     const token = getToken();
     if (!token) {

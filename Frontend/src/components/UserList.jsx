@@ -1,6 +1,7 @@
 import React from "react";
 import { Button } from "@/components/shadcn/button";
 
+// Normaliseert role-string zodat de select altijd consistente waardes gebruikt.
 function normalizeRole(role) {
   const value = String(role ?? "user").trim().toLowerCase();
   return value === "admin" ? "admin" : "user";
@@ -40,6 +41,7 @@ export default function UserList({
                 <td className="px-6 py-4">{u.email}</td>
 
                 <td className="px-6 py-4">
+                  {/* Role-switch triggert direct de update callback uit de parent. */}
                   <select
                     value={roleValue}
                     onChange={(e) => onRoleChange?.(u.id, e.target.value)}

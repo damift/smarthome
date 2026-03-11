@@ -37,6 +37,7 @@ const EMPTY_STEP = {
   value: "",
 };
 
+// Startstate voor create/edit routine formulier.
 function createEmptyForm() {
   return {
     slug: "",
@@ -47,10 +48,12 @@ function createEmptyForm() {
   };
 }
 
+// Maakt vergelijkingen case-insensitive door alles naar uppercase te normaliseren.
 function normalizeTypeName(value) {
   return String(value ?? "").trim().toUpperCase();
 }
 
+// Zet backend action-namen om naar leesbare labels voor dropdowns.
 function formatActionLabel(name) {
   return String(name || "")
     .toLowerCase()
@@ -59,6 +62,7 @@ function formatActionLabel(name) {
     .join(" ");
 }
 
+// Normaliseert action-records uit API's naar één frontend formaat.
 function normalizeActionOption(action) {
   const name = normalizeTypeName(action?.name);
   if (!name) return null;
@@ -71,6 +75,7 @@ function normalizeActionOption(action) {
   };
 }
 
+// Haalt dubbele actions weg en houdt de beste versie (met valueType) over.
 function dedupeActions(actions) {
   const map = new Map();
 
@@ -90,6 +95,7 @@ function dedupeActions(actions) {
   return Array.from(map.values()).sort((a, b) => a.name.localeCompare(b.name));
 }
 
+// Bouwt type dropdown opties inclusief gekoppelde actions.
 function normalizeTypeOptions(typesRaw) {
   if (!Array.isArray(typesRaw)) return [];
 
@@ -112,6 +118,7 @@ function normalizeTypeOptions(typesRaw) {
     .filter(Boolean);
 }
 
+// Bouwt device dropdown opties inclusief type, room, state en actions.
 function normalizeDeviceOptions(devicesRaw) {
   if (!Array.isArray(devicesRaw)) return [];
 
@@ -144,6 +151,7 @@ function normalizeDeviceOptions(devicesRaw) {
     .filter(Boolean);
 }
 
+// Normaliseert routine steps zodat edit-form altijd dezelfde shape heeft.
 function normalizeSteps(steps) {
   if (!Array.isArray(steps)) return [];
 
@@ -158,6 +166,7 @@ function normalizeSteps(steps) {
   }));
 }
 
+// Zet routine API-response om naar UI-model.
 function normalizeRoutine(routine) {
   const steps = normalizeSteps(routine?.steps);
 
@@ -174,11 +183,13 @@ function normalizeRoutine(routine) {
   };
 }
 
+// Rendert icon op basis van opgeslagen icon-key.
 function renderIcon(iconKey) {
   const Icon = ROUTINE_ICONS[normalizeTypeName(iconKey)] || Settings;
   return <Icon className="h-6 w-6" />;
 }
 
+// Genereert veilige slug uit titel of handmatige input.
 function slugify(value) {
   const normalized = String(value ?? "")
     .trim()
@@ -189,6 +200,7 @@ function slugify(value) {
   return normalized.slice(0, 100);
 }
 
+// Vult routine-data in het formulier bij bewerken.
 function routineToForm(routine) {
   const steps = Array.isArray(routine?.steps) && routine.steps.length > 0
     ? routine.steps.map((step) => ({ ...EMPTY_STEP, ...step }))
@@ -203,6 +215,7 @@ function routineToForm(routine) {
   };
 }
 
+// Helpers voor value-weergave: brightness/temperature krijgen een slider.
 function isBrightnessAction(actionName) {
   return normalizeTypeName(actionName).includes("BRIGHTNESS");
 }
@@ -234,6 +247,7 @@ function getDefaultValueForAction(actionName) {
   return "";
 }
 
+// Zet één step om naar backend payload-formaat.
 function toStepPayload(step, index) {
   const normalizedAction = normalizeTypeName(step.action_name);
   let normalizedValue = String(step.value ?? "").trim();
@@ -270,6 +284,7 @@ export default function RoutinesPage() {
   const [loadingFormOptions, setLoadingFormOptions] = React.useState(false);
   const [formOptionsError, setFormOptionsError] = React.useState(null);
 
+  // Laadt routines voor de kaartenlijst.
   const fetchRoutines = React.useCallback(async () => {
     try {
       setLoading(true);
@@ -285,6 +300,7 @@ export default function RoutinesPage() {
     }
   }, []);
 
+  // Laadt type/device data voor alle routine dropdowns.
   const fetchFormOptions = React.useCallback(async () => {
     try {
       setLoadingFormOptions(true);
@@ -310,14 +326,17 @@ export default function RoutinesPage() {
     }
   }, []);
 
+  // Initial load van routines.
   React.useEffect(() => {
     fetchRoutines();
   }, [fetchRoutines]);
 
+  // Initial load van dropdown opties.
   React.useEffect(() => {
     fetchFormOptions();
   }, [fetchFormOptions]);
 
+  // Bouwt een snelle lookup: type => beschikbare actions.
   const actionsByType = React.useMemo(() => {
     const map = new Map();
 
@@ -334,12 +353,14 @@ export default function RoutinesPage() {
     return map;
   }, [typeOptions, deviceOptions]);
 
+  // Fallback lijst met alle unieke actions.
   const allActionOptions = React.useMemo(() => {
     const allActions = [];
     actionsByType.forEach((actions) => allActions.push(...actions));
     return dedupeActions(allActions);
   }, [actionsByType]);
 
+  // Probeert de gekozen step te koppelen aan een echt device-object.
   function getSelectedDevice(step) {
     if (step.device_id) {
       const byId = deviceOptions.find((device) => String(device.id) === String(step.device_id));
@@ -359,12 +380,14 @@ export default function RoutinesPage() {
     );
   }
 
+  // Filtert devices op gekozen type.
   function getDevicesForStep(step) {
     const normalizedType = normalizeTypeName(step.type_name);
     if (!normalizedType) return deviceOptions;
     return deviceOptions.filter((device) => normalizeTypeName(device.typeName) === normalizedType);
   }
 
+  // Bepaalt welke actions getoond worden voor deze step context.
   function getActionOptionsForStep(step) {
     const selectedDevice = getSelectedDevice(step);
     const normalizedType = normalizeTypeName(step.type_name);
@@ -389,6 +412,7 @@ export default function RoutinesPage() {
     return actionOptions;
   }
 
+  // Activeert routine en toont resultaat aan de user.
   async function handleActivate(routine) {
     try {
       setActivatingId(routine.id);
@@ -408,6 +432,7 @@ export default function RoutinesPage() {
     }
   }
 
+  // Open create-dialog met lege formstate.
   function openCreateDialog() {
     setEditingRoutine(null);
     setForm(createEmptyForm());
@@ -415,6 +440,7 @@ export default function RoutinesPage() {
     setDialogOpen(true);
   }
 
+  // Open edit-dialog met bestaande routine-inhoud.
   function openEditDialog(routine) {
     setEditingRoutine(routine);
     setForm(routineToForm(routine));
@@ -422,6 +448,7 @@ export default function RoutinesPage() {
     setDialogOpen(true);
   }
 
+  // Generieke helper om één veld in één step te updaten.
   function updateStep(index, field, value) {
     setForm((prev) => {
       const nextSteps = prev.steps.map((step, stepIndex) => {
@@ -433,6 +460,7 @@ export default function RoutinesPage() {
     });
   }
 
+  // Typewijziging reset afhankelijke velden (device/action/value).
   function handleTypeChange(index, value) {
     setForm((prev) => {
       const nextSteps = [...prev.steps];
@@ -451,6 +479,7 @@ export default function RoutinesPage() {
     });
   }
 
+  // Devicekeuze vult contextvelden en reset action/value.
   function handleDeviceChange(index, deviceId) {
     setForm((prev) => {
       const nextSteps = [...prev.steps];
@@ -481,6 +510,7 @@ export default function RoutinesPage() {
     });
   }
 
+  // Actionkeuze zet standaard value voor consistente payload.
   function handleActionChange(index, actionName) {
     setForm((prev) => {
       const nextSteps = [...prev.steps];
@@ -497,14 +527,17 @@ export default function RoutinesPage() {
     });
   }
 
+  // Schrijft value terug naar de actieve step.
   function handleValueChange(index, value) {
     updateStep(index, "value", value);
   }
 
+  // Voeg een extra step toe onderaan de lijst.
   function addStep() {
     setForm((prev) => ({ ...prev, steps: [...prev.steps, { ...EMPTY_STEP }] }));
   }
 
+  // Verwijder step, maar houd altijd minimaal één step over.
   function removeStep(index) {
     setForm((prev) => {
       if (prev.steps.length === 1) return prev;
@@ -515,6 +548,7 @@ export default function RoutinesPage() {
     });
   }
 
+  // Valideert en verstuurt create/update routine request.
   async function handleFormSubmit(event) {
     event.preventDefault();
     setFormError(null);
@@ -575,6 +609,7 @@ export default function RoutinesPage() {
 
   return (
     <div className="space-y-4">
+      {/* Paginaheader + knop om routine toe te voegen. */}
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h1 className="text-2xl font-semibold">Routines</h1>
@@ -609,7 +644,9 @@ export default function RoutinesPage() {
       )}
 
       {!loading && !error && routines.length > 0 && (
-        <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
+        <>
+          {/* Overzicht met routinekaarten. */}
+          <div className="mt-4 grid grid-cols-1 gap-6 md:grid-cols-2">
           {routines.map((routine) => (
             <RoutineCard
               key={routine.id}
@@ -623,7 +660,8 @@ export default function RoutinesPage() {
               onEdit={() => openEditDialog(routine)}
             />
           ))}
-        </div>
+          </div>
+        </>
       )}
 
       <Dialog
@@ -639,6 +677,7 @@ export default function RoutinesPage() {
         }}
       >
         <DialogContent className="max-h-[85vh] max-w-4xl overflow-y-auto">
+          {/* Create/Edit formulier voor routines en stappen. */}
           <DialogHeader>
             <DialogTitle>{editingRoutine ? "Edit Routine" : "Create Routine"}</DialogTitle>
             <DialogDescription>
@@ -708,6 +747,7 @@ export default function RoutinesPage() {
             </div>
 
             <div className="space-y-3 rounded-md border p-3">
+              {/* Dynamische lijst met routine steps. */}
               <div className="flex items-center justify-between">
                 <h3 className="text-sm font-semibold">Steps</h3>
                 <Button type="button" variant="outline" size="sm" onClick={addStep} className="gap-1">
@@ -752,6 +792,7 @@ export default function RoutinesPage() {
                     </div>
 
                     <div className="grid gap-3 md:grid-cols-2">
+                      {/* Scope selectors: type + device + action. */}
                       <div className="space-y-2">
                         <Label>Type</Label>
                         <select
@@ -808,6 +849,7 @@ export default function RoutinesPage() {
                         </select>
                       </div>
 
+                      {/* Value-control verschijnt alleen voor brightness/thermostat actions. */}
                       {showSlider && (
                         <div className="space-y-2">
                           <div className="flex items-center justify-between">
