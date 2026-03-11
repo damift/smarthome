@@ -203,31 +203,54 @@ function routineToForm(routine) {
   };
 }
 
+function isBrightnessAction(actionName) {
+  return normalizeTypeName(actionName).includes("BRIGHTNESS");
+}
+
+function isTemperatureAction(actionName) {
+  const normalized = normalizeTypeName(actionName);
+  return normalized.includes("TEMPERATURE") || normalized.includes("THERMOSTAT");
+}
+
+function usesSliderValue(actionName) {
+  return isBrightnessAction(actionName) || isTemperatureAction(actionName);
+}
+
+function getSliderConfigForAction(actionName) {
+  if (isTemperatureAction(actionName)) {
+    return { min: 10, max: 35, step: 0.5, defaultValue: 20, unit: "\u00B0C" };
+  }
+
+  return { min: 0, max: 100, step: 1, defaultValue: 50, unit: "%" };
+}
+
+function getDefaultValueForAction(actionName) {
+  const normalized = normalizeTypeName(actionName);
+
+  if (!normalized) return "";
+  if (normalized === "TURN_ON" || normalized === "TURN_OFF") return "true";
+  if (isBrightnessAction(normalized)) return "50";
+  if (isTemperatureAction(normalized)) return "20";
+  return "";
+}
+
 function toStepPayload(step, index) {
+  const normalizedAction = normalizeTypeName(step.action_name);
+  let normalizedValue = String(step.value ?? "").trim();
+
+  if (normalizedValue === "") {
+    normalizedValue = getDefaultValueForAction(normalizedAction);
+  }
+
   return {
     position: index + 1,
     summary: step.summary.trim() || null,
     room_name: step.room_name.trim() || null,
     type_name: normalizeTypeName(step.type_name) || null,
     device_name: step.device_name.trim() || null,
-    action_name: normalizeTypeName(step.action_name),
-    value: String(step.value ?? "").trim() === "" ? null : String(step.value).trim(),
+    action_name: normalizedAction,
+    value: normalizedValue === "" ? null : normalizedValue,
   };
-}
-
-function buildDefaultValueOptions(actionName, valueType) {
-  const normalizedAction = normalizeTypeName(actionName);
-  const normalizedType = normalizeTypeName(valueType);
-
-  if (normalizedType === "BOOLEAN") return ["true", "false"];
-  if (normalizedAction.includes("TEMPERATURE")) return ["16", "18", "20", "22", "24"];
-  if (normalizedAction.includes("BRIGHTNESS")) return ["0", "25", "50", "75", "100"];
-  if (normalizedAction.includes("COLOR") || normalizedAction.includes("COLOUR")) {
-    return ["#ffffff", "#ffd166", "#5682e8", "#ff6b6b"];
-  }
-  if (normalizedType === "INT") return ["0", "25", "50", "75", "100"];
-  if (normalizedType === "DECIMAL") return ["0", "0.5", "1", "1.5", "2"];
-  return [];
 }
 
 export default function RoutinesPage() {
@@ -366,42 +389,6 @@ export default function RoutinesPage() {
     return actionOptions;
   }
 
-  function getValueOptionsForStep(step, actionOptions) {
-    const normalizedAction = normalizeTypeName(step.action_name);
-    if (!normalizedAction) return [];
-
-    const selectedAction = actionOptions.find((action) => action.name === normalizedAction);
-    const selectedDevice = getSelectedDevice(step);
-    const normalizedType = normalizeTypeName(step.type_name);
-
-    const scopedDevices = selectedDevice
-      ? [selectedDevice]
-      : normalizedType
-      ? deviceOptions.filter((device) => normalizeTypeName(device.typeName) === normalizedType)
-      : deviceOptions;
-
-    const valueSet = new Set();
-
-    scopedDevices.forEach((device) => {
-      const stateValue = device.state?.[normalizedAction];
-      if (stateValue === undefined || stateValue === null || stateValue === "") return;
-      valueSet.add(String(stateValue));
-    });
-
-    buildDefaultValueOptions(normalizedAction, selectedAction?.valueType).forEach((value) => {
-      valueSet.add(value);
-    });
-
-    if (String(step.value ?? "").trim() !== "") {
-      valueSet.add(String(step.value));
-    }
-
-    return Array.from(valueSet).map((value) => ({
-      value,
-      label: value,
-    }));
-  }
-
   async function handleActivate(routine) {
     try {
       setActivatingId(routine.id);
@@ -498,11 +485,12 @@ export default function RoutinesPage() {
     setForm((prev) => {
       const nextSteps = [...prev.steps];
       const current = nextSteps[index] ?? { ...EMPTY_STEP };
+      const normalizedAction = normalizeTypeName(actionName);
 
       nextSteps[index] = {
         ...current,
-        action_name: normalizeTypeName(actionName),
-        value: "",
+        action_name: normalizedAction,
+        value: getDefaultValueForAction(normalizedAction),
       };
 
       return { ...prev, steps: nextSteps };
@@ -739,8 +727,12 @@ export default function RoutinesPage() {
 
                 const stepActions = getActionOptionsForStep(step);
                 const selectedActionName = normalizeTypeName(step.action_name);
-
-                const stepValues = getValueOptionsForStep(step, stepActions);
+                const showSlider = usesSliderValue(selectedActionName);
+                const sliderConfig = getSliderConfigForAction(selectedActionName);
+                const rawSliderValue = Number(step.value);
+                const sliderValue = Number.isFinite(rawSliderValue)
+                  ? rawSliderValue
+                  : sliderConfig.defaultValue;
 
                 return (
                   <div key={`step-${index}`} className="space-y-3 rounded-md border p-3">
@@ -816,22 +808,26 @@ export default function RoutinesPage() {
                         </select>
                       </div>
 
-                      <div className="space-y-2">
-                        <Label>Value</Label>
-                        <select
-                          value={String(step.value ?? "")}
-                          onChange={(event) => handleValueChange(index, event.target.value)}
-                          className={SELECT_CLASS}
-                          disabled={!selectedActionName}
-                        >
-                          <option value="">Select value</option>
-                          {stepValues.map((valueOption) => (
-                            <option key={`${valueOption.value}-${index}`} value={valueOption.value}>
-                              {valueOption.label}
-                            </option>
-                          ))}
-                        </select>
-                      </div>
+                      {showSlider && (
+                        <div className="space-y-2">
+                          <div className="flex items-center justify-between">
+                            <Label>Value</Label>
+                            <span className="text-sm font-semibold text-zinc-700">
+                              {sliderValue}
+                              {sliderConfig.unit}
+                            </span>
+                          </div>
+                          <input
+                            type="range"
+                            min={sliderConfig.min}
+                            max={sliderConfig.max}
+                            step={sliderConfig.step}
+                            value={sliderValue}
+                            onChange={(event) => handleValueChange(index, event.target.value)}
+                            className="w-full cursor-pointer appearance-none rounded-lg bg-zinc-300"
+                          />
+                        </div>
+                      )}
 
                       <div className="space-y-2 md:col-span-2">
                         <Label>Room</Label>
